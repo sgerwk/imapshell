@@ -1,0 +1,526 @@
+.TH imapshell 1 "Jan 8, 2023"
+
+.
+.
+.
+.SH NAME
+imapshell - search an IMAP mailbox, possibly downloading or deleting mails
+
+.
+.
+.
+.SH SYNOPSIS
+\fBimapshell\fP
+[\fIoptions\fP] -- \fIaccount\fP [\fIfirst\fP [\fIlast\fP]]
+
+.SH DESCRIPTION
+
+Search an IMAP inbox according to criteria like index, subject and sender.
+The mails found can optionally be downloaded or deleted upon confirmation.
+
+Interactive shell by default.
+Not interactive with \fI-q\fP and possibly \fI-k\fP.
+
+.
+.
+.
+.SH COMMANDS
+
+Select mails by the \fIbegin\fP, \fIend\fP, \fIrange\fP, \fIfrom\fP,
+\fIto\fP, \fIcc\fP, \fIsubject\fP, \fItext\fP, \fIafter\fP, \fIbefore\fP and
+\fIon\fP commands;
+then, operate on them by the \fIlist\fP, \fIshow\fP, \fIsave\fP and
+\fIdelete\fP commands.
+Alternatively, run an arbitrary IMAP command by the \fIcommand\fP command.
+Terminate by \fIquit\fP.
+
+.
+.
+.
+.SS Mail selection
+
+.TP
+.BI begin " n
+index of first mail;
+negative numbers are from the end;
+default is two hundreds from the last
+
+.TP
+.BI end " n
+index of last mail;
+negative numbers are from the end;
+default is the last
+
+.TP
+.BI range " begin:end
+only mails in this index range, like \fI9120:*\fP
+
+.TP
+.BI from " sender
+mails from this sender
+
+.TP
+.BI to " recipient
+mails to this recipient
+
+.TP
+.BI cc " recipient
+mails to this cc recipient
+
+.TP
+.BI subject " string
+mails with this subject
+
+.TP
+.BI text " string
+mails with text anywhere
+
+.TP
+.BI after " date
+only mails after this date, in the format \fI12-Jan-2025\fP
+
+.TP
+.BI before " date
+only mails before this date
+
+.TP
+.BI on " date
+only mails on this date
+
+.
+.
+.
+.SS Operations
+
+.TP
+.BI list " [uid]
+list the mails matching the current selection criteria;
+if \fIuid\fP is given, only list the mail with that unique identifier,
+where \fI+n\fP stands for the nth and \fI-n\fP for the nth-to-last;
+alternatives are
+\fIsearch\fP,
+\fI-\fP,
+\fIl\fP,
+\fIls\fP
+and
+\fIdir\fP
+
+.TP
+.BI show " [uid]
+show the content of the 
+mails matching the current selection criteria;
+the \fIuid\fP argument is like for the \fIlist\fP command
+
+.TP
+.BI save " base [uid]
+save the mails matching the current selection criteria,
+each to \fIbase.uid\fP;
+the \fIuid\fP argument is like for the \fIlist\fP command
+
+.TP
+.BI delete " [uid]
+delete mails upon confirmation;
+the \fIuid\fP argument is like for the \fIlist\fP command;
+requires read-write mode: option \fI-w\fP or command \fIrw\fP;
+alternatives are
+\fIdel\fP,
+\fIremove\fP and
+\fIrm\fP
+
+.TP
+.BI command " string
+execute an arbitrary IMAP command instead of searching;
+see \fIEXAMPLE COMMANDS\fP, below
+
+.TP
+.B nop
+send a no-operation request to the server
+
+.TP
+.B quit
+terminate
+
+.
+.
+.
+.SS Flags and options
+
+Flags are set by \fIflagname+\fP and reset by \fIflagname-\fP.
+Options with arguments are reset by \fIoption-\fP or \fIoption -\fP.
+The default is to show the envelopes of the mails found in the format returned
+by the server.
+
+.TP
+.B execute+
+do not do anything with the mail found, just show the outcome of the search
+request as returned by the server
+
+.TP
+.B listonly+
+only list mails found
+
+.TP
+.B structure+
+print the structure of each mail
+
+.TP
+.B restore-
+do not restore flags of emails, such as \fI\\Seen\fP
+
+.TP
+.B synchronous+
+synchronous delete;
+since some servers are slow at deletions,
+the outcome of each deletion request is not waited for before
+proceeding with the next;
+this option is for waiting instead;
+it is ignored for every operation other than delete
+
+.TP
+.BI viewer " program
+show envelopes by the given external program;
+\fI.\fP stands for the \fIimapenvelope\fP script
+
+.TP
+.BI pager " program
+page mail lists through an external program;
+\fI.\fP stands for \fImore\fP
+
+.
+.
+.
+.SS Other commands
+
+.TP
+.B rw
+change to read-write mode
+
+.TP
+.B ro
+change to read-only mode;
+this is the default unless \fI-w\fP is given
+
+.TP
+.B reopen
+reopen the folder in the same mode (read-only or read-write) as before
+
+.TP
+.BI read " file
+read commands from file;
+everything following the \fI#\fP character is ignored;
+this command is not recursive: \fIread\fP commands inside the file are ignored
+
+.TP
+.BI auto " script
+.TQ
+.BI automate " script
+save the current selection criteria and operation flags and options
+as a script file
+
+.TP
+.BI help " [command]
+print list of commands or help on a specific command
+
+.TP
+.B verbose+
+verbose mode
+
+.
+.
+.
+.SH OPTIONS
+
+A first listing is shown according to the command line options.
+The searching criteria are then kept until changed by commands.
+
+It is like the first command from the user were \fIlist\fP.
+The \fI-k command\fP option replaces it with an arbitrary command.
+An empty \fIcommand\fP is for skipping this first command.
+
+This first command is executed if no interactive session follows (option
+\fI-q\fP), but is otherwise skipped if commands are read from a file or the
+given mail range is too large.
+
+.TP
+.BI -f " email
+mail from this sender
+
+.TP
+.BI -o " email
+mail to this recipient
+
+.TP
+.BI -y " email
+mail to this cc recipient
+
+.TP
+.BI -s " word
+mail whose subject contains this whole word
+
+.TP
+.BI -t " text
+mail containing this string, anywhere
+
+.TP
+.BI -a " date
+mail after this date, in the format 12-Dec-2022
+
+.TP
+.BI -u " date
+mail before this date
+
+.TP
+.BI -p " date
+mail on this date
+
+.TP
+.BI -r " range
+mail in this range, like 9120:*
+
+.TP
+.BI -c " string
+execute this IMAP command instead of searching;
+see \fIEXAMPLE COMMANDS\fP, below
+
+.TP
+.BI -m
+do not restore flags of emails, such as \fI\\Seen\fP
+
+.TP
+.BI -v " program
+envelopes are shown by the given external program;
+\fI.\fP stands for the \fIimapenvelope\fP script
+
+.TP
+.BI -M " pager
+page mail lists through an external program;
+\fI.\fP stands for \fImore\fP
+
+.TP
+.B -w
+open mailbox read-write (default is read-only)
+
+.TP
+.B -e
+only perform search, do not do anything with the mails found;
+may require \fI-V\fP to see the results
+
+.TP
+.B -l
+only list messages
+
+.TP
+.B -x
+show the structure of each message
+
+.TP
+.BI -b " prefix
+save each message \fIn\fP to \fIprefix.n\fP,
+or show it on screen if the argument is \fI.\fP
+
+.TP
+.B -d
+delete messages found (with \fI-w\fP), after confirm
+
+.TP
+.B -D
+sychronous delete;
+some servers are slow at serving deletions;
+because of this, the outcome of each deletion request is not waited for before
+proceeding with the next;
+this option is for waiting instead
+
+.TP
+.BI -R " file
+execute commands from file;
+everything following the \fI#\fP character is ignored;
+further commands are read from standard input unless the file contains
+the \fIquit\fP command
+
+.TP
+.BI -k " line
+execute an \fIimapshell\fP command,
+that is, one listed in the \fICOMMANDS\fP section above;
+it is like \fIline\fP were the first input line from the user;
+this is different from \fI-c command\fP,
+which directly executes an IMAP command on the server;
+an empty \fIline\fP argument is for skipping the execution of the first command
+
+.TP
+.B -q
+no interactive session:
+only execute the command as given by the commandline options and terminate
+
+.TP
+.B -i
+list of inboxes in the server
+
+.TP
+.B -z
+print account file name list of accounts
+
+.TP
+.B -P
+non-encrypted connection
+
+.TP
+.B -V
+verbose
+
+.TP
+.BI -E " where
+simulate an error in command \fIwhere\fP;
+the list of possible commands is shown with \fIwhere=help\fP
+
+.TP
+.BI -S " script
+simulate an IMAP server by a script;
+the server receives a tag and a command as commandline arguments,
+and gives the answer on its standard output
+
+as an example, it may receive the arguments
+.I A003 UID SEARCH 3:5
+and output the two lines
+.I * SEARCH 3 4 5
+and
+.I A003 OK
+
+a single dot \fI.\fP stands for the \fIimapsimulate\fP script
+
+.TP
+.B -h
+inline help
+
+.TP
+.B account
+account number or name; see \fIACCOUNTS\fP, below 
+
+.TP
+.B first
+first message, negative means from last;
+default is two hundreds from the last
+
+.TP
+.B last
+last message, negative means from last;
+default is the last
+
+.
+.
+.
+.SH ACCOUNTS
+
+The account is given by a commandline option \fIuser:server\fP or
+\fIuser:server/inbox\fP,
+or by an entry in the account file \fI$HOME/.config/imapshell/accounts.txt\fP.
+The account file contains an account per line.
+Each is a tab-separated list:
+
+.IP "  * " 4
+name of the account (an arbitrary string)
+
+.IP "  * "
+server
+
+.IP "  * "
+user
+
+.IP "  * "
+password (or \fINULL\fP)
+
+.IP "  * "
+inbox
+
+.P
+If the account is a number, it is the index in this list, starting from zero.
+Otherwise, it is the name of the account.
+
+If the password is the literal string \fINULL\fP, it is asked to the user.
+
+.
+.
+.
+.SH OPERATION
+
+The typical sequence of operations is:
+
+.IP "  * " 4
+select mail by the \fIbegin\fP, \fIend\fP, \fIfrom\fP, \fIto\fP, \fIsubject\fP,
+\fItext\fP, \fIafter\fP, \fIbefore\fP, \fIon\fP and \fIrange\fP commands or
+their corresponding commandline options
+
+.IP "  * "
+change flags and options by the \fIexecute\fP, \fIlistonly\fP, \fIstructure\fP,
+\fIrestore\fP, \fIviewer\fP and \fIpager\fP commands or their corresponding
+cmdline options
+
+.IP "  * "
+operate on the mail by the \fIlist\fP, \fIshow\fP, \fIsave\fP and \fIdelete\fP
+commands
+
+.P
+Envelopes are shown exactly as returned from the IMAP server, as nested lists
+of strings. The \fIviewer\fP command and the \fI-v\fP option redirect them to
+an external pretty-printing program, such as the \fBimapenvelope\fP script. The
+mail listings are optionally piped through the external program given by the
+\fIpager\fP command and the \fI-M\fP option.
+
+The \fIdelete\fP command and the \fI-d\fP and \fP-D\fP options delete the
+selected mails upon confirmation if the inbox is opened in read/write mode.
+They require \fIrw\fP or \fI-w\fP since the default mode is read-only.
+Since some servers are slow at serving deletions,
+the outcomes are not waited for before proceeding the next mail.
+They are with \fIsynchronous+\fP or \fI-D\fP.
+
+The \fIcommand\fP command and the \fI-c\fP option run an arbitrary IMAP
+command. If it is a search command, everything continues as usual. Otherwise,
+nothing else is done. The latter is also the case with \fIexecute\fP or
+\fI-e\fP.
+
+The default is to show the envelopes of mails found.
+With \fIexecute\fP or \fI-r\fP, only the verbatim outcome of the search is
+printed, as returned from the server.
+With \fIlistonly\fP or \fI-l\fP, mails are only listed.
+Command \fIstructure\fP and option \fI-x\fP show the structure of each mail.
+
+Unless a message is deleted, its flags are restored after reading. Therefore,
+it remains unread if it was even if its body is read. This default behaviour is
+changed by the \fIrestore-\fP command and the \fI-m\fP commandline option.
+
+.
+.
+.
+.SH EXAMPLE COMMANDS
+
+The following are example IMAP commands for \fIcommand\fP or \fI-c\fP.
+
+.TP
+.I LIST "" Saved/*
+list of children inboxes of
+.I Saved
+
+.TP
+.I
+STATUS Inbox (MESSAGES RECENT UNSEEN)
+number of mails in
+.I Inbox
+
+.TP
+.I
+STORE 9386 +FLAGS (\\Seen)
+.PD 0
+.TP
+.I
+STORE 9386 -FLAGS (\\Seen)
+mark mail 9386 as seen or unseen; require \fIrw\fP or \fI-w\fP
+
+.TP
+.I
+SEARCH UNSEEN 9300:*
+show unseen messages from number 9300 on
+
+.TP
+.I
+NOOP
+no operation
+

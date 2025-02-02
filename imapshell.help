@@ -1,0 +1,88 @@
+% 1. tell which mails by
+%    begin, end, range, from, to, cc, subject, text, after, before and on
+% 2. tell what to do with them by
+%    execute, listonly, structure, restore, synchronous, viewer and pager
+% 3. operate by list, show, save or delete, or run an arbitrary IMAP command
+% 4. quit
+%
+%% commands:
+
+begin n
+	index of first mail;
+	negative numbers are from the end; default is ten from the last
+end n	index of last mail;
+	negative numbers are from the end;
+	default is the last
+range begin:end
+	only mails in this index range, like 9120:*
+from sender
+	mails from this sender
+to recipient
+	mails to this recipient
+cc recipient
+	mails to this cc recipient
+subject string
+	mails with this subject
+text string
+	mails with text anywhere
+after date
+	only mails after this date, like 12-Jan-2025
+before date
+	only mails before this date, like 12-Jan-2025
+on date
+	only mails on this date, like 12-Jan-2025
+execute+
+	do not do anything with the mail found;
+	may need verbose mode (command verbose+ or option -V) to see the outcome
+listonly+
+	only list mails found
+structure+
+	print the structure of each mail
+restore-
+	do not restore flags of emails, such as \\Seen
+synchronous+
+	sychronous delete; some servers are slow at serving deletions; because
+	of this, the outcome of each deletion request is not waited for before
+	proceeding with the next; this option is for waiting instead
+viewer program
+	envelopes are shown by the given external program;
+	. stands for the imapenvelope script
+pager program
+	page mail lists through the given external program;
+	. stands for more 
+list [uid]
+	retrieve the mails matching the current criteria
+	if uid is given, only list the mail with that unique identifier,
+	where +n stands for the nth and -n for the nth-to-last
+	alternatives are search, -, l, ls and dir
+show [uid]
+	show mail content
+	if uid is given, only list the mail with that unique identifier,
+	where +n stands for the nth and -n for the nth-to-last
+save base [uid]
+	save each mail n to file base.n
+	if uid is given, only list the mail with that unique identifier,
+	where +n stands for the nth and -n for the nth-to-last
+delete [uid]
+	delete mails upon confirmation;
+	if uid is given, only list the mail with that unique identifier,
+	where +n stands for the nth and -n for the nth-to-last
+	requires read-write mode: option -w or command rw
+command string
+	execute an arbitrary IMAP command instead of searching;
+	see EXAMPLE COMMANDS, below
+nop	no operation
+rw	change to read-write mode
+ro	change to read-only mode; this is the default unless -w is given
+reopen	reopen the mail folder in the same read/write mode as before
+read file
+	read commands from file;
+	this command is not recursive: read commands inside the file are ignored
+automate script
+	save the current parameters as a script file
+help	print summary of commands
+verbose+
+	verbose mode
+quit	terminate
+
+% 

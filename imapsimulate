@@ -1,0 +1,153 @@
+#!/bin/bash
+#
+# simulated IMAP server
+#
+# NOOP -1 decreases the number of mails, as if one where deleted
+# UID SEARCH .* FROM n=1000 gives 1000 results
+
+# mail envelope:
+# date subject from sender reply-to to cc bcc in-reply-to message-id
+
+MAIL=\
+'* 1 FETCH (UID 4   ENVELOPE '\
+'("12-Dec-2024" "about this" '\
+'(("sam" NIL "gmail" "gmail.com"))'\
+'(()) '\
+'(()) '\
+'(("laura" NIL "aol" "aol.com"))'\
+'))'\
+'#'\
+'#1733958000'\
+'
+'\
+'* 2 FETCH (UID 94  ENVELOPE '\
+'("12-Dec-2024" "Re: about this" '\
+'(("robert" NIL "aol" "aol.com"))'\
+'))'\
+'# \Seen \Recent'\
+'#1733958000'\
+'
+'\
+'* 3 FETCH (UID 112 ENVELOPE '\
+'("3-Jan-2025" "nothing" '\
+'(("sam" NIL "proton" "proton.me"))'\
+'))'\
+'# \Deleted'\
+'#1735858800'\
+'
+'\
+'* 4 FETCH (UID 351 ENVELOPE '\
+'("4-Jan-2025" "some other" '\
+'(("frank" NIL "gitlab" "gitlab.freedesktop.org"))'\
+'))'\
+'# \Recent'\
+'#1735945200'
+
+N=$(echo "$MAIL" | wc -l)
+R=$(echo "$MAIL" | grep '#.*\\Recent' | wc -l)
+
+TAG="$1"
+shift 1
+COMMAND=$(echo "$*" | tr -d '\r')
+
+if echo "$COMMAND" | grep -q -E '^NOOP [-]1';
+then
+	N=$((N-1))
+	echo "* $N EXISTS"
+	echo "* $R RECENT"
+
+
+elif echo "$COMMAND" | grep -q -E '^EXAMINE |^SELECT ';
+then
+	echo "* $N EXISTS"
+	echo "* $R RECENT"
+
+
+elif echo "$COMMAND" | grep -q "^UID SEARCH .* FROM n=";
+then
+	N=$(echo $COMMAND | sed 's,^.*n=,,')
+	echo -n "* SEARCH"
+	for I in $(seq 1 $N);
+	do
+		echo -n " $I"
+	done
+	echo
+
+
+elif echo "$COMMAND" | grep -q "^UID SEARCH ";
+then
+	echo -n "* SEARCH "
+	RANGE=$(echo "$COMMAND" | cut -d' ' -f3)
+	FIRST=$(echo $RANGE | cut -d: -f1)
+	FIRST=$((FIRST))
+	LAST=$(echo $RANGE | cut -d: -f2)
+	LAST=$((LAST))
+	echo "$COMMAND" | grep -q -v "UID [0-9]"		&&
+		FUID='[0-9]*'					||
+		FUID=$(echo "$COMMAND" | sed 's,^.*UID ,,' | sed 's, .*,,')
+	echo "$COMMAND" | grep -q -v "SUBJECT"			&&
+		SUBJECT=.					||
+		SUBJECT=$(echo "$COMMAND" | sed 's,^.*SUBJECT ,,' | \
+			sed 's, .*,,')
+	echo "$COMMAND" | grep -q -v "FROM"			&&
+		FROM=.						||
+		FROM=$(echo "$COMMAND" | sed 's,^.*FROM ,,' | sed 's, .*,,')
+	echo "$COMMAND" | grep -q -v "TO"			&&
+		TO=.						||
+		TO=$(echo "$COMMAND" | sed 's,^.*TO ,,' | sed 's, .*,,')
+	echo "$COMMAND" | grep -q -v "TEXT"			&&
+		TEXT=.						||
+		TEXT=$(echo "$COMMAND" | sed 's,^.*TEXT ,,' | sed 's, .*,,')
+	echo "$COMMAND" | grep -q -v "BEFORE"			&&
+		BEFORE=$(date --date "now + 500 years" +%s)	||
+		BEFORE=$(date --date $(echo "$COMMAND" | sed 's,^.*BEFORE ,,' | sed 's, .*,,') +%s)
+	echo "$COMMAND" | grep -q -v "ON"			&&
+		ON=.						||
+		ON=$(date --date $(echo "$COMMAND" | sed 's,^.*ON ,,' | sed 's, .*,,') +%s)
+	echo "$COMMAND" | grep -q -v "SINCE"			&&
+		SINCE=0						||
+		SINCE=$(date --date $(echo "$COMMAND" | sed 's,^.*SINCE ,,' | sed 's, .*,,') +%s)
+	echo "$MAIL"						|\
+		head -n $LAST					|\
+		tail -n -$((LAST-FIRST+1))			|\
+		grep "^[^#]*#[^#]*#[^#]*$ON"			|\
+		grep "(UID $FUID "				|\
+		awk -F'#' -v before=$BEFORE -v since=$SINCE '
+		{ if ($3 > since && $3 < before) print $0 }
+		{ if (0) print $1 "x" $3 "x" since "x" before }
+		'	|\
+		grep "^\(.*\"\)\{3\}[^\"]*$SUBJECT"		|\
+		grep "^\(.*\"\)\{5\}[^\"]*$FROM"		|\
+		grep "^\(.*\"\)\{8\}[^\"]*$TO"			|\
+		grep "$TEXT"					|\
+		cut -d' ' -f5 | tr '\n' ' '
+	echo
+
+
+elif echo "$COMMAND" | grep -q "^UID FETCH .* BODY.PEEK";
+then
+	N=$(echo "$COMMAND" | cut -d' ' -f3)
+	CONTENT=$(echo "Subject: this is email $N
+
+	body of email" | sed 's,^\t*,,g')
+	LEN=$(echo "$CONTENT" | wc -c | cut -d' ' -f1)
+	cat <<-!
+		* $N FETCH (BODY[] {$LEN}
+		$CONTENT
+		)
+	!
+
+elif echo "$COMMAND" | grep -q "^UID FETCH .* ENVELOPE";
+then
+	LIST=$(echo "$COMMAND" | sed 's,^.*FETCH ,,' | sed 's, .*,,')
+	for N in $(echo $LIST | tr , ' ');
+	do
+		echo "$MAIL" | grep "\(.* \)\{4\}$N " | cut -d'#' -f1 | \
+		sed 's,$,\r,'
+	done
+
+fi
+
+
+echo "$TAG OK"
+
