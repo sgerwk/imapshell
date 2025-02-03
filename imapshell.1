@@ -493,6 +493,7 @@ changed by the \fIrestore-\fP command and the \fI-m\fP commandline option.
 .SH EXAMPLE COMMANDS
 
 The following are example IMAP commands for \fIcommand\fP or \fI-c\fP.
+The full list of IMAP commands is in RFC3501.
 
 .TP
 .I LIST "" Saved/*
@@ -512,7 +513,7 @@ STORE 9386 +FLAGS (\\Seen)
 .TP
 .I
 STORE 9386 -FLAGS (\\Seen)
-mark mail 9386 as seen or unseen; require \fIrw\fP or \fI-w\fP
+mark mail 9386 as seen or unseen; requires \fIrw\fP or \fI-w\fP
 
 .TP
 .I
