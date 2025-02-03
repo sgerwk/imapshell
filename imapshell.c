@@ -9,17 +9,17 @@
  *
  * fdgets()
  * 	read a line or a ()-balanced string from the server
- * 
+ *
  * sendcommand()
  * recvanswer()
  * recvmail()
  * 	send command and receive answer
  * 	answer is different when fetching a mail body
- * 
+ *
  * sendrecv()
  * fetch()
  * 	send + receive or receive mail body
- * 
+ *
  * imaprun()
  * 	retrieve list of mails
  * 	retrieve envelopes and show them
@@ -204,7 +204,7 @@ void simulate_error_usage() {
 char *it = "";
 char *rm = "";
 
-/* 
+/*
  * log and error printing
  */
 void (*printstring) (char *);
@@ -402,7 +402,7 @@ int FD_read(struct server *server, char *buf, int n) {
 
 	if (server->ssl != NULL)
 		return SSL_read(server->ssl, buf, n);
-	if (server->fd != -1) 
+	if (server->fd != -1)
 		return read(server->fd, buf, n);
 	if (server->pipe == NULL) // read without write: initial greeting
 		return 0;
@@ -428,7 +428,7 @@ int FD_write(struct server *server, char *buf, int n) {
 
 	if (server->ssl != NULL)
 		return SSL_write(server->ssl, buf, n);
-	if (server->fd != -1) 
+	if (server->fd != -1)
 		return write(server->fd, buf, n);
 	if (server->pipe == NULL) {
 		cmdline = malloc(strlen(server->program) + n + 2);
@@ -440,8 +440,8 @@ int FD_write(struct server *server, char *buf, int n) {
 }
 
 /*
- * line reading 
- * 
+ * line reading
+ *
  * read a line if balanced == 0
  *
  * otherwise, read until the next newline where parentheses are balanced and
@@ -548,13 +548,13 @@ char *fdgets(char *buf, int size, struct server *server, int balanced) {
 /*
  * functions for sending commands and receiving answers
  * the protocol is:
- * 
+ *
  * send: tag command
  * recv: * line
  *       * line
  *       * line
  *       tag OK
- * 
+ *
  * tag is an arbitrary string, unique for each command
  */
 
@@ -1107,7 +1107,7 @@ int pagerstart(struct imapcommand *command) {
 
 	if (! command->pager)
 		return 0;
-	if ((command->body && command->prefix) || command->delete) 
+	if ((command->body && command->prefix) || command->delete)
 		return 0;
 
 	res = pipe(command->pagerpipe);
@@ -1141,7 +1141,7 @@ void pagerstop(struct imapcommand *command) {
 
 	if (! command->pager)
 		return;
-	if ((command->body && command->prefix) || command->delete) 
+	if ((command->body && command->prefix) || command->delete)
 		return;
 
 	fflush(stdout);
@@ -1702,7 +1702,7 @@ enum command parse(struct imapcommand *command, char *line) {
 }
 
 /*
- * build search string 
+ * build search string
  */
 int searchstring(struct imapcommand *command) {
 	command->search[0] = '\0';
@@ -1788,7 +1788,7 @@ char **completion(const char *text, int start, int end) {
 			break;
 		}
 
-	if (commands[i] == NULL) 
+	if (commands[i] == NULL)
 		return NULL;
 
 	dprintf("completion=\"%s\"\n", res);
@@ -2097,7 +2097,7 @@ int main(int argn, char *argv[]) {
 				break;
 			case 'b':
 				command.body = 1;
-				command.prefix = 
+				command.prefix =
 					! strcmp(optarg, ".") ?
 						NULL : strdup(optarg);
 				break;
