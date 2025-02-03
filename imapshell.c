@@ -4,6 +4,30 @@
  * a shell for searching an IMAP folder
  */
 
+/*
+ * main functions
+ *
+ * fdgets()
+ * 	read a line or a ()-balanced string from the server
+ * 
+ * sendcommand()
+ * recvanswer()
+ * recvmail()
+ * 	send command and receive answer
+ * 	answer is different when fetching a mail body
+ * 
+ * sendrecv()
+ * fetch()
+ * 	send + receive or receive mail body
+ * 
+ * imaprun()
+ * 	retrieve list of mails
+ * 	retrieve envelopes and show them
+ * 	retrieve flags or bodies or delete
+ * loop()
+ * 	call imaprun() on list, show, save and delete
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
