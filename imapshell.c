@@ -579,8 +579,10 @@ char *recvanswer(struct server *server) {
 
 	sprintf(tag, "A%03d ", cnum);
 
-	if (strstr(buf, tag) != buf)
+	if (strstr(buf, tag) != buf) {
+		printf("received: \"%s\"\n", buf);
 		printf("received tag differs from expected %s\n", tag);
+	}
 
 	ok = (char *) malloc(strlen(tag) + 4);
 	sprintf(ok, "%sOK", tag);
