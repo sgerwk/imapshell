@@ -4,6 +4,7 @@
 #
 # NOOP -1 decreases the number of mails, as if one where deleted
 # UID SEARCH .* FROM n=1000 gives 1000 results
+# imapsearch -V -S. -f n=1000 -q -- aol
 
 # mail envelope:
 # date subject from sender reply-to to cc bcc in-reply-to message-id
