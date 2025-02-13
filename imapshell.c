@@ -2163,7 +2163,7 @@ int main(int argn, char *argv[]) {
 			/* color terminal */
 
 	if (getenv("TERM") != NULL && ! strcmp(getenv("TERM"), "linux")) {
-		// tgetstr, smul, rmul
+		// setupterm, tigetstr, tparm; smul, rmul
 		it = "\033[3m";
 		rm = "\033[23m";
 	}
