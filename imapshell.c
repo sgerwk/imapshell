@@ -2208,6 +2208,12 @@ int main(int argn, char *argv[]) {
 	cardinality(res, &command.n);
 	free(res);
 
+	strcpy(buf, "CAPABILITY");
+	SIMULATE_ERROR("capability", buf);
+	res = sendrecv(&server, buf);
+	cardinality(res, &command.n);
+	free(res);
+
 			/* login */
 
 	sprintf(buf, "LOGIN %s %s", account->usr, account->psw);
