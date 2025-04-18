@@ -1810,8 +1810,18 @@ char *nofilename(const char *text, int state) {
 }
 
 /*
+ * timeout hook
+ */
+int timeout() {
+	strcpy(rl_line_buffer, "nop");
+	rl_done = 1;
+	return 0;
+}
+
+/*
  * main loop
  */
+#define MICROSECOND 1000000
 int loop(struct imapcommand *command) {
 	char *line;
 	enum command res;
@@ -1831,6 +1841,8 @@ int loop(struct imapcommand *command) {
 
 	rl_completion_entry_function = nofilename;
 	rl_attempted_completion_function = completion;
+	rl_set_keyboard_input_timeout(30 * MICROSECOND);
+	rl_event_hook = timeout;
 
 	if (command->readfile == NULL) {
 		bounds(command);
