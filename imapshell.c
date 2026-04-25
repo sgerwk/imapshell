@@ -32,7 +32,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
-#include <term.h>
+#include <termios.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -75,7 +75,7 @@ struct account {
 	char name[100];
 	char srv[100];
 	char usr[100];
-	char psw[100];
+	char psw[800];
 	char dir[100];
 } *accts;
 
@@ -243,7 +243,7 @@ void printstringnowhere(char *s) {
 int openconnection(char *hostname, int port) {
 	int sock;
 	struct sockaddr_in server;
-	struct hostent *hp, *gethostbyname();
+	struct hostent *hp;
 	char buf[BUFLEN];
 
 			/* open socket */
@@ -571,14 +571,20 @@ void sendcommand(struct server *server, char *comm) {
 
 	c = (char *) malloc(10 + strlen(comm) + 3);
 	sprintf(c, "A%03d %s\r\n", cnum, comm);
-	if (strstr(comm, "LOGIN") != comm)
-		printstring(c);
-	else {
+	if (strstr(comm, "LOGIN") == comm) {
 		res = (char *) malloc(strlen(comm) + 10);
 		sprintf(res, "A%03d LOGIN ...\n", cnum);
 		printstring(res);
 		free(res);
 	}
+	else if (strstr(comm, "AUTHENTICATE") == comm) {
+		res = (char *) malloc(strlen(comm) + 10);
+		sprintf(res, "A%03d AUTHENTICATE ...\n", cnum);
+		printstring(res);
+		free(res);
+	}
+	else
+		printstring(c);
 
 	FD_write(server, c, strlen(c));
 	free(c);
@@ -2003,6 +2009,7 @@ void usage(int ret, struct account *accts) {
 int main(int argn, char *argv[]) {
 	char *opts;
 	int opt;
+	FILE *xoauth2 = NULL;
 	struct imapcommand command;
 	char buf[BUFLEN];
 	int inboxes;
@@ -2198,6 +2205,16 @@ int main(int argn, char *argv[]) {
 	printf("account %s in %s/%s\n",
 	       account->usr, account->srv, account->dir);
 
+	if (! strncmp(account->psw, "xoauth2:", strlen("xoauth2:"))) {
+		xoauth2 = fopen(strchr(account->psw, ':') + 1, "r");
+		if (xoauth2 == NULL) {
+			perror(account->psw);
+			exit(EXIT_FAILURE);
+		}
+		fscanf(xoauth2, "%s", account->psw);
+		fclose(xoauth2);
+	}
+
 	if (! strcmp(account->psw, "NULL")) {
 		sprintf(buf, "password for %s on %s: ",
 		        account->usr, account->srv);
@@ -2228,8 +2245,11 @@ int main(int argn, char *argv[]) {
 
 			/* login */
 
-	sprintf(buf, "LOGIN %s %s", account->usr, account->psw);
-	SIMULATE_ERROR("login", buf);
+	if (xoauth2 != NULL)
+		sprintf(buf, "AUTHENTICATE XOAUTH2 %s", account->psw);
+	else
+		sprintf(buf, "LOGIN %s %s", account->usr, account->psw);
+	SIMULATE_ERROR("authentication", buf);
 	res = sendrecv(&server, buf);
 	cardinality(res, &command.n);
 	free(res);
