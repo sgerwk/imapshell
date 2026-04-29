@@ -438,7 +438,10 @@ Otherwise, it is the name of the account.
 If the password is the literal string \fINULL\fP, it is asked to the user.
 
 If ths password begins with \fIxoauth2:\fP, the rest is the name of a file
-containing the SASL-encoded XOAUTH2 authentication string.
+containing the SASL-encoded XOAUTH2 authentication string. The included script
+\fIxoauth2-google.sh\fP obtains such strings for google accounts; it
+preliminarly requires the creation of a project and client in the google
+developers server.
 
 .
 .
