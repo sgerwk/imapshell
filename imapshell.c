@@ -210,7 +210,7 @@ char *rm = "";
 void (*printstring) (char *);
 
 FILE *outfile;
-char *external;
+char *viewer;
 
 void printstringtofile(char *s) {
 	fprintf(outfile, "%s", s);
@@ -224,9 +224,9 @@ void printstringonscreen(char *s) {
 void printstringtocommand(char *s) {
 	FILE *pipe;
 	fflush(stdout);
-	pipe = popen(external, "w");
+	pipe = popen(viewer, "w");
 	if (pipe == NULL) {
-		perror(external);
+		perror(viewer);
 		return;
 	}
 	fwrite(s, 1, strlen(s), pipe);
@@ -902,6 +902,11 @@ struct imapcommand {
 				// others
 	char *search;
 	char *command;
+	int ncommands;
+	char **commands;
+	char **externals;
+	char *external;
+	char *pattern;
 	char *automate;
 	char *readfile;
 	FILE *read;
@@ -1161,6 +1166,73 @@ void pagerstop(struct imapcommand *command) {
 }
 
 /*
+ * run an external command on a message
+ */
+int runexternal(struct imapcommand *command, char *envelope) {
+	char idx[100];
+	int l;
+	char *buf;
+
+	if (command->external == NULL) {
+		viewer = command->viewer;
+		printstringtocommand(envelope);
+		return 0;
+	}
+
+	if (command->verbose)
+		printf("external: %s %.50s%s\n",
+		       command->pattern, envelope,
+		       strlen(envelope) > 50 ? "..." : "");
+
+	if (command->pattern != NULL && ! strcmp(command->pattern, "found"))
+		return 0;
+
+	if (sscanf(envelope, "* %s ", idx) < 1) {
+		printf("error scanning envelope: %.50s...\n", envelope);
+		return -2;
+	}
+
+	l = strlen(idx);
+	if (command->pattern == NULL ||
+	    ! strcmp(command->pattern, "first") ||
+	    ! strcmp(command->pattern, idx + l - strlen(command->pattern))) {
+		// idx % exp10(int(log10(pattern)+1)) == pattern
+		if (command->verbose)
+			printf("match: %s\n", idx);
+
+		buf = malloc(strlen(command->external) + l + strlen(envelope));
+		sprintf(buf, command->external, idx, envelope);
+		if (command->verbose)
+			printf("command: %s\n", buf);
+		if (system(buf) != 0)
+			return -2;
+		free(buf);
+
+		if (command->pattern) {
+			free(command->pattern);
+			command->pattern = strdup("found");
+		}
+
+		return 0;
+	}
+
+	return -1;
+}
+
+/*
+ * check if any of the ids matched the pattern
+ */
+int endexternal(struct imapcommand *command) {
+	if (command->external != NULL &&
+	    command->pattern != NULL &&
+	    ! ! strcmp(command->pattern, "found")) {
+		printf("mail *%s not found\n", command->pattern);
+		return -1;
+	}
+	return 0;
+}
+
+/*
  * run a command
  */
 int imaprun(struct imapcommand *command) {
@@ -1260,15 +1332,16 @@ int imaprun(struct imapcommand *command) {
 		cardinality(res, &command->n);
 		if (res == NULL)
 			return 0;
-		if (command->viewer)
+		if (command->viewer || command->external) {
 			for (cur = res; *cur == '*'; cur = next + 2) {
 				next = strchr(cur, '\r');
 				if (next == NULL)
 					break;
 				*next = '\0';
-				external = command->viewer;
-				printstringtocommand(cur);
+				runexternal(command, cur);
 			}
+			endexternal(command);
+		}
 		else if (! command->verbose)
 			printstringonscreen(res);
 		free(res);
@@ -1317,16 +1390,11 @@ int imaprun(struct imapcommand *command) {
 				pendingenvelope--;
 			}
 		}
-		if (! command->verbose) {
+		if (! command->verbose || command->external) {
 			cur = strchr(res, '\n');
 			if (cur && *cur != '\0')
 				*(cur + 1) = '\0';
-			if (! command->viewer)
-				printstringonscreen(res);
-			else {
-				external = command->viewer;
-				printstringtocommand(res);
-			}
+			runexternal(command, res);
 		}
 		free(res);
 
@@ -1425,7 +1493,10 @@ int imaprun(struct imapcommand *command) {
 			cardinality(res, &command->n);
 			free(res);
 		}
+
 	}
+
+	endexternal(command);
 
 	cnum -= pendingenvelope + pendingdelete - 1;
 	for (i = 0; i < pendingenvelope + pendingdelete; i++) {
@@ -1455,6 +1526,10 @@ void resetcommand(struct imapcommand *command) {
 	free(command->uid);
 	command->uid = NULL;
 	command->luid = 0;
+	free(command->external);
+	command->external = NULL;
+	free(command->pattern);
+	command->pattern = NULL;
 }
 
 /*
@@ -1685,6 +1760,14 @@ enum command parse(struct imapcommand *command, char *line) {
 	}
 	else if (! strcmp(single, "auto"))
 		printhelp("auto");
+	else if (! strcmp(single, "copy")) {
+		free(command->external);
+		command->external = strdup(command->externals[0]);
+		free(command->pattern);
+		command->pattern =
+			strdup(1 == sscanf(line, "copy %s", s) ? s : "first");
+		ret = GET;
+	}
 	else if (! strcmp(single, "nop")) {
 		command->command = strdup("NOOP");
 		ret = GET;
@@ -1699,8 +1782,23 @@ enum command parse(struct imapcommand *command, char *line) {
 		command->help = NULL;
 		ret = HELP;
 	}
-	else
-		ret = VALUE;
+	else {
+		for (i = 0; i < command->ncommands; i++)
+			if (! strcmp(single, command->commands[i]))
+				break;
+		if (i == command->ncommands)
+			ret = VALUE;
+		else {
+			free(command->external);
+			command->external = strdup(command->externals[i]);
+			free(command->pattern);
+			line += strlen(command->commands[i]);
+			command->pattern = strdup(1 == sscanf(line, "%s", s) ?
+						  s :
+						  "first");
+			ret = GET;
+		}
+	}
 
 	free(single);
 	free(s);
@@ -1769,7 +1867,7 @@ char **completion(const char *text, int start, int end) {
 	                    "execute", "listonly", "structure", "synchronous",
 			    "restore", "viewer", "pager",
 			    "rw", "ro", "reopen",
-	                    "nop", "command", "read", "automate",
+			    "copy", "nop", "command", "read", "automate",
 			    "help", "verbose",
 	                    NULL};
 	int i;
@@ -1958,6 +2056,42 @@ int loop(struct imapcommand *command) {
 }
 
 /*
+ * read external commands
+ */
+int readmap(char *filename, int *len, char ***keys, char ***values) {
+	FILE *in;
+	char key[50], value[50];
+	int size;
+
+	in = fopen(filename, "r");
+	if (in == NULL) {
+		if (debug)
+			perror(filename);
+		return -1;
+	}
+
+	size = 0;
+	*len = 0;
+	free(*keys);
+	*keys = NULL;
+	free(*values);
+	*values = NULL;
+	while (2 == fscanf(in, "%40s	%40[^\n]", key, value)) {
+		if (*len >= size) {
+			size += 10;
+			*keys = realloc(*keys, size * sizeof(char *));
+			*values = realloc(*values, size * sizeof(char *));
+		}
+		(*keys)[*len] = strdup(key);
+		(*values)[*len] = strdup(value);
+		(*len)++;
+	}
+
+	fclose(in);
+	return 0;
+}
+
+/*
  * usage
  */
 void usage(int ret, struct account *accts) {
@@ -2018,7 +2152,7 @@ int main(int argn, char *argv[]) {
 	char *res;
 	int ret;
 
-			/* args */
+			/* defaults */
 
 	inboxes = 0;
 	command.from = NULL;
@@ -2048,6 +2182,13 @@ int main(int argn, char *argv[]) {
 	command.synchronous = 0;
 	command.idx = NULL;
 	command.lidx = 0;
+	command.ncommands = 1;
+	command.commands = malloc(command.ncommands * sizeof(char *));
+	command.commands[0] = "copy";
+	command.externals = malloc(command.ncommands * sizeof(char *));
+	command.externals[0] = "echo copy %s";
+	command.external = NULL;
+	command.pattern = NULL;
 	command.readfile = NULL;
 	command.read = NULL;
 	command.quit = 0;
@@ -2059,6 +2200,19 @@ int main(int argn, char *argv[]) {
 	printaccounts = 0;
 	printstring = printstringnowhere;
 	command.n = -1;
+
+			/* external commands */
+
+	if (getenv("HOME") == NULL) {
+		printf("no home directory\n");
+		exit(EXIT_FAILURE);
+	}
+	strcpy(buf, getenv("HOME"));
+	strcat(buf, "/.config/imapshell/externals.txt");
+	readmap(buf, &command.ncommands, &command.commands, &command.externals);
+
+			/* args */
+
 	opts = "f:o:y:s:u:p:t:a:r:c:v:M:ewlxb:dDizk:R:qVE:PS:h";
 	while (-1 != (opt = getopt(argn, argv, opts)))
 		switch(opt) {

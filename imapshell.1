@@ -128,6 +128,19 @@ alternatives are
 \fIrm\fP
 
 .TP
+.BI copy " [pattern]
+call an external command to copy a mail number of later pasting;
+\fIpattern\fP is the sequence of the last digits of the mail number; default is
+first mail;
+see \fIEXTERNAL COMMANDS\fP, below
+
+.TP
+.BI (external) " [pattern]
+call an external program;
+\fIpattern\fP is like for the \fIcopy\fP command
+see \fIEXTERNAL COMMANDS\fP, below
+
+.TP
 .BI command " string
 execute an arbitrary IMAP command instead of searching;
 see \fIEXAMPLE COMMANDS\fP, below
@@ -442,6 +455,25 @@ containing the SASL-encoded XOAUTH2 authentication string. The included script
 \fIxoauth2-google.sh\fP obtains such strings for google accounts; it
 preliminarly requires the creation of a project and client in the google
 developers server.
+
+.
+.
+.
+.SH EXTERNAL COMMANDS
+
+Every unrecognized command is taken to be an external command. Their list is
+read at startup from the file \fI$HOME/.config/impashell/externals.txt\fP. Each
+line contains two strings, separated by a tab. The first is the name of an
+external command to call it from the shell. The second is the program that is
+actually executed. It contains up to two substrings \fI%s\fP; the first is
+replaced by a mail number, the second by its envelope. The mail is identified
+by the last digits of its number among the ones currently selected. The first
+command is also called by \fIcopy\fP.
+
+For example, a line \fIprint<tab>echo %s %s\fP allows executing \fIprint 45\fP
+in the shell. If the first mail number among the mails currently selected that
+ends in \fI45\fP is mail \fI3245\fP, then \fIecho\fP is executed with argument
+\fI3245\fP and the envelope of this email as its two arguments.
 
 .
 .

@@ -1,8 +1,9 @@
 % 1. tell which mails by
 %    begin, end, range, from, to, cc, subject, text, after, before and on
 % 2. tell what to do with them by
-%    execute, listonly, structure, restore, synchronous, viewer and pager
-% 3. operate by list, show, save or delete, or run an arbitrary IMAP command
+%    execute, listonly, structure, restore, synchronous, viewer, pager,
+% 3. operate by list, show, save, delete, copy or an external program
+%    or run an arbitrary IMAP command
 % 4. quit
 %
 %% commands:
@@ -68,6 +69,10 @@ delete [uid]
 	if uid is given, only list the mail with that unique identifier,
 	where +n stands for the nth and -n for the nth-to-last
 	requires read-write mode: option -w or command rw
+copy [pattern]
+	copy a mail number for later pasting
+external [pattern]
+	execute an external command on a mail
 command string
 	execute an arbitrary IMAP command instead of searching;
 	see EXAMPLE COMMANDS, below
