@@ -128,14 +128,14 @@ alternatives are
 \fIrm\fP
 
 .TP
-.BI copy " [pattern]
+.BI copy " [uid|pattern]
 call an external command to copy a mail number of later pasting;
 \fIpattern\fP is the sequence of the last digits of the mail number; default is
 first mail;
 see \fIEXTERNAL COMMANDS\fP, below
 
 .TP
-.BI (external) " [pattern]
+.BI (external) " [uid|pattern]
 call an external program;
 \fIpattern\fP is like for the \fIcopy\fP command
 see \fIEXTERNAL COMMANDS\fP, below
@@ -461,16 +461,19 @@ developers server.
 .
 .SH EXTERNAL COMMANDS
 
-Every unrecognized command is taken to be an external command. Their list is
-read at startup from the file \fI$HOME/.config/impashell/externals.txt\fP. Each
-line contains two strings, separated by a tab. The first is the name of an
-external command to call it from the shell. The second is the program that is
-actually executed. It contains up to two substrings \fI%s\fP; the first is
-replaced by a mail number, the second by its envelope. The mail is identified
-by the last digits of its number among the ones currently selected. The first
+Every command not in the above list is considered the name of an external
+command. Their list is read at startup from the file
+\fI$HOME/.config/impashell/externals.txt\fP. Each line comprises two strings
+separated by a tab. The first is the name of the external command. The second
+is the program that is executed, containing up to two substrings \fI%s\fP; the
+first is replaced by a mail number, the second by its envelope. The first
 command is also called by \fIcopy\fP.
 
-For example, a line \fIprint<tab>echo %s %s\fP allows executing \fIprint 45\fP
+The mail is identified by its uid, or by \fI+n\fP, \fI-n\fP or \fI*n\fP. The
+first two forms are for the \fIn\fP-th or the \fIn\fP-th-to-last mail, the form
+\fI*n\fP is for the first mail ending with \fIn\fP.
+
+For example, a line \fIprint<tab>echo %s %s\fP allows executing \fIprint *45\fP
 in the shell. If the first mail number among the mails currently selected that
 ends in \fI45\fP is mail \fI3245\fP, then \fIecho\fP is executed with argument
 \fI3245\fP and the envelope of this email as its two arguments.

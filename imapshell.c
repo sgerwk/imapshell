@@ -1555,10 +1555,42 @@ void resetcommand(struct imapcommand *command) {
 }
 
 /*
- * parse command line
- * GET = list, show, save or delete
+ * command
+ * GET = list, show, save, delete, copy or external command
  */
 enum command {OPTION, GET, REOPEN, AUTO, READ, HELP, QUIT, SYNTAX, VALUE};
+
+/*
+ * parse mail pattern
+ */
+int parsepattern(struct imapcommand *command, char *line) {
+	int ret;
+	char *c, *s;
+
+	c = malloc(BUFLEN);
+	s = malloc(BUFLEN);
+
+	free(command->pattern);
+	command->pattern = NULL;
+	ret = GET;
+	if (2 != sscanf(line, "%s %s", c, s) ||
+	    ! strcmp(s, "last"))
+		strcpy(s, "-1");
+	if (! strcmp(s, "first"))
+		command->pattern = strdup(s);
+	else if (s[0] == '*')
+		command->pattern = strdup(s + 1);
+	else if (stringtouid(command, s))
+		ret = VALUE;
+
+	free(s);
+	free(c);
+	return ret;
+}
+
+/*
+ * parse command line
+ */
 enum command parse(struct imapcommand *command, char *line) {
 	char *single, *s;
 	int i;
@@ -1785,10 +1817,7 @@ enum command parse(struct imapcommand *command, char *line) {
 	else if (! strcmp(single, "copy")) {
 		free(command->external);
 		command->external = strdup(command->externals[0]);
-		free(command->pattern);
-		command->pattern =
-			strdup(1 == sscanf(line, "copy %s", s) ? s : "first");
-		ret = GET;
+		ret = parsepattern(command, line);
 	}
 	else if (! strcmp(single, "nop")) {
 		command->command = strdup("NOOP");
@@ -1813,12 +1842,7 @@ enum command parse(struct imapcommand *command, char *line) {
 		else {
 			free(command->external);
 			command->external = strdup(command->externals[i]);
-			free(command->pattern);
-			line += strlen(command->commands[i]);
-			command->pattern = strdup(1 == sscanf(line, "%s", s) ?
-						  s :
-						  "first");
-			ret = GET;
+			ret = parsepattern(command, line);
 		}
 	}
 
