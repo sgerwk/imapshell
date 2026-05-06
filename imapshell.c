@@ -1214,7 +1214,6 @@ int runexternal(struct imapcommand *command, char *envelope) {
 
 	l = strlen(idx);
 	if (command->pattern == NULL ||
-	    ! strcmp(command->pattern, "first") ||
 	    ! strcmp(command->pattern, idx + l - strlen(command->pattern))) {
 		// idx % exp10(int(log10(pattern)+1)) == pattern
 		if (command->verbose)
@@ -1573,11 +1572,8 @@ int parsepattern(struct imapcommand *command, char *line) {
 	free(command->pattern);
 	command->pattern = NULL;
 	ret = GET;
-	if (2 != sscanf(line, "%s %s", c, s) ||
-	    ! strcmp(s, "last"))
+	if (2 != sscanf(line, "%s %s", c, s))
 		strcpy(s, "-1");
-	if (! strcmp(s, "first"))
-		command->pattern = strdup(s);
 	else if (s[0] == '*')
 		command->pattern = strdup(s + 1);
 	else if (stringtouid(command, s))
