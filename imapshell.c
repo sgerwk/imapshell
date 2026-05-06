@@ -1145,6 +1145,26 @@ int pagerstart(struct imapcommand *command) {
 }
 
 /*
+ * suspend paging
+ */
+int pagersuspend(struct imapcommand *command) {
+	if (! command->pager)
+		return 0;
+	dup2(command->pagersave, STDOUT_FILENO);
+	return 0;
+}
+
+/*
+ * resume paging
+ */
+int pagerresume(struct imapcommand *command) {
+	if (! command->pager)
+		return 0;
+	dup2(command->pagerpipe[1], STDOUT_FILENO);
+	return 0;
+}
+
+/*
  * stop paging
  */
 void pagerstop(struct imapcommand *command) {
@@ -1204,8 +1224,10 @@ int runexternal(struct imapcommand *command, char *envelope) {
 		sprintf(buf, command->external, idx, envelope);
 		if (command->verbose)
 			printf("command: %s\n", buf);
+		pagersuspend(command);
 		if (system(buf) != 0)
 			return -2;
+		pagerresume(command);
 		free(buf);
 
 		if (command->pattern) {
@@ -2170,6 +2192,7 @@ int main(int argn, char *argv[]) {
 	command.command = NULL;
 	command.viewer = NULL;
 	command.pager = NULL;
+	command.pagersave = -1;
 	command.executeonly = 0;
 	command.rw = 0;
 	command.executeonly = 0;
