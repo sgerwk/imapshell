@@ -1811,7 +1811,6 @@ enum command parse(struct imapcommand *command, char *line) {
 	else if (! strcmp(single, "auto"))
 		printhelp("auto");
 	else if (! strcmp(single, "copy")) {
-		free(command->external);
 		command->external = strdup(command->externals[0]);
 		ret = parsepattern(command, line);
 	}
@@ -1836,7 +1835,6 @@ enum command parse(struct imapcommand *command, char *line) {
 		if (i == command->ncommands)
 			ret = VALUE;
 		else {
-			free(command->external);
 			command->external = strdup(command->externals[i]);
 			ret = parsepattern(command, line);
 		}
