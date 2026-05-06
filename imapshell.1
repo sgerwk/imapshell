@@ -128,16 +128,17 @@ alternatives are
 \fIrm\fP
 
 .TP
-.BI copy " [uid|pattern]
-call an external command to copy a mail number of later pasting;
-\fIpattern\fP is the sequence of the last digits of the mail number; default is
-first mail;
+.BI copy " [uid|*pattern]
+call an external command to copy a mail number for later pasting;
+\fIuid\fP is like for the \fIlist\fP command;
+\fIpattern\fP are the last digits of the mail number;
+the default is the first mail;
 see \fIEXTERNAL COMMANDS\fP, below
 
 .TP
-.BI (external) " [uid|pattern]
+.BI (external) " [uid|*pattern]
 call an external program;
-\fIpattern\fP is like for the \fIcopy\fP command
+the argument is like for the \fIcopy\fP command;
 see \fIEXTERNAL COMMANDS\fP, below
 
 .TP
@@ -191,12 +192,12 @@ it is ignored for every operation other than delete
 
 .TP
 .BI viewer " program
-show envelopes by the given external program;
+show envelopes by the given program;
 \fI.\fP stands for the \fIimapenvelope\fP script
 
 .TP
 .BI pager " program
-page mail lists through an external program;
+page mail lists through a program;
 \fI.\fP stands for \fImore\fP
 
 .
@@ -301,12 +302,12 @@ do not restore flags of emails, such as \fI\\Seen\fP
 
 .TP
 .BI -v " program
-envelopes are shown by the given external program;
+envelopes are shown by the given program;
 \fI.\fP stands for the \fIimapenvelope\fP script
 
 .TP
 .BI -M " pager
-page mail lists through an external program;
+pipe mail lists through a program;
 \fI.\fP stands for \fImore\fP
 
 .TP
@@ -461,21 +462,20 @@ developers server.
 .
 .SH EXTERNAL COMMANDS
 
-Every command not in the above list is considered the name of an external
-command. Their list is read at startup from the file
+Additional commands are read from the file
 \fI$HOME/.config/impashell/externals.txt\fP. Each line comprises two strings
-separated by a tab. The first is the name of the external command. The second
-is the program that is executed, containing up to two substrings \fI%s\fP; the
-first is replaced by a mail number, the second by its envelope. The first
-command is also called by \fIcopy\fP.
+separated by a tab. The first is the name of the command. The second is the
+program that is executed: it contains up to two substrings \fI%s\fP; the first
+is replaced by the mail number, the second by its envelope. The first command
+is also called by \fIcopy\fP.
 
 The mail is identified by its uid, or by \fI+n\fP, \fI-n\fP or \fI*n\fP. The
 first two forms are for the \fIn\fP-th or the \fIn\fP-th-to-last mail, the form
 \fI*n\fP is for the first mail ending with \fIn\fP.
 
 For example, a line \fIprint<tab>echo %s %s\fP allows executing \fIprint *45\fP
-in the shell. If the first mail number among the mails currently selected that
-ends in \fI45\fP is mail \fI3245\fP, then \fIecho\fP is executed with argument
+in the shell. If \fI3245\fP is first mail number among the mails currently
+selected that ends in \fI45\fP, then \fIecho\fP is executed with argument
 \fI3245\fP and the envelope of this email as its two arguments.
 
 .
