@@ -93,10 +93,11 @@ only mails on this date
 .SS Operations
 
 .TP
-.BI list " [uid]
+.BI list " [uid|*pattern]
 list the mails matching the current selection criteria;
 if \fIuid\fP is given, only list the mail with that unique identifier,
 where \fI+n\fP stands for the nth and \fI-n\fP for the nth-to-last;
+if \fIpattern\fP is given, list only the mail ending with these digits;
 alternatives are
 \fIsearch\fP,
 \fI-\fP,
@@ -106,10 +107,10 @@ and
 \fIdir\fP
 
 .TP
-.BI show " [uid]
+.BI show " [uid|*pattern]
 show the content of the 
 mails matching the current selection criteria;
-the \fIuid\fP argument is like for the \fIlist\fP command
+arguments are like for the \fIlist\fP command
 
 .TP
 .BI save " base [uid]
@@ -130,15 +131,14 @@ alternatives are
 .TP
 .BI copy " [uid|*pattern]
 call an external command to copy a mail number for later pasting;
-\fIuid\fP is like for the \fIlist\fP command;
-\fIpattern\fP are the last digits of the mail number;
+arguments are like for the \fIlist\fP command;
 the default is the first mail;
 see \fIEXTERNAL COMMANDS\fP, below
 
 .TP
 .BI (external) " [uid|*pattern]
 call an external program;
-the argument is like for the \fIcopy\fP command;
+arguments are like for the \fIlist\fP command;
 see \fIEXTERNAL COMMANDS\fP, below
 
 .TP

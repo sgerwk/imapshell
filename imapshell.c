@@ -1186,16 +1186,37 @@ void pagerstop(struct imapcommand *command) {
 }
 
 /*
- * run an external command on a message
+ * pattern matching
  */
-int runexternal(struct imapcommand *command, char *envelope) {
-	char idx[100];
-	int l;
+int patternmatch(struct imapcommand *command, char *id) {
+	return command->pattern == NULL ||
+	       ! strcmp(command->pattern,
+	                  id + strlen(id) - strlen(command->pattern));
+}
+
+/*
+ * view a message or pass it to an external command
+ */
+int view(struct imapcommand *command, char *envelope) {
+	char idx[BUFLEN];
 	char *buf;
+
+	if (sscanf(envelope, "* %s ", idx) < 1) {
+		printf("error scanning envelope: %.50s...\n", envelope);
+		return -2;
+	}
+
+	if (! patternmatch(command, idx))
+		return -1;
 
 	if (command->external == NULL) {
 		viewer = command->viewer;
-		printstringtocommand(envelope);
+		if (viewer)
+			printstringtocommand(envelope);
+		else {
+			printstringonscreen(envelope);
+			printf("\n");
+		}
 		return 0;
 	}
 
@@ -1204,40 +1225,23 @@ int runexternal(struct imapcommand *command, char *envelope) {
 		       command->pattern, envelope,
 		       strlen(envelope) > 50 ? "..." : "");
 
-	if (command->pattern != NULL && ! strcmp(command->pattern, "found"))
-		return 0;
-
-	if (sscanf(envelope, "* %s ", idx) < 1) {
-		printf("error scanning envelope: %.50s...\n", envelope);
+	buf = malloc(strlen(command->external) +
+	             strlen(idx) + strlen(envelope));
+	sprintf(buf, command->external, idx, envelope);
+	if (command->verbose)
+		printf("command: %s\n", buf);
+	pagersuspend(command);
+	if (system(buf) != 0)
 		return -2;
+	pagerresume(command);
+	free(buf);
+
+	if (command->pattern) {
+		free(command->pattern);
+		command->pattern = strdup("found");
 	}
 
-	l = strlen(idx);
-	if (command->pattern == NULL ||
-	    ! strcmp(command->pattern, idx + l - strlen(command->pattern))) {
-		// idx % exp10(int(log10(pattern)+1)) == pattern
-		if (command->verbose)
-			printf("match: %s\n", idx);
-
-		buf = malloc(strlen(command->external) + l + strlen(envelope));
-		sprintf(buf, command->external, idx, envelope);
-		if (command->verbose)
-			printf("command: %s\n", buf);
-		pagersuspend(command);
-		if (system(buf) != 0)
-			return -2;
-		pagerresume(command);
-		free(buf);
-
-		if (command->pattern) {
-			free(command->pattern);
-			command->pattern = strdup("found");
-		}
-
-		return 0;
-	}
-
-	return -1;
+	return 0;
 }
 
 /*
@@ -1353,18 +1357,18 @@ int imaprun(struct imapcommand *command) {
 		cardinality(res, &command->n);
 		if (res == NULL)
 			return 0;
-		if (command->viewer || command->external) {
-			for (cur = res; *cur == '*'; cur = next + 2) {
-				next = strchr(cur, '\r');
-				if (next == NULL)
-					break;
-				*next = '\0';
-				runexternal(command, cur);
-			}
-			endexternal(command);
+		if (command->verbose) {
+			free(res);
+			return 0;
 		}
-		else if (! command->verbose)
-			printstringonscreen(res);
+		for (cur = res; *cur == '*'; cur = next + 2) {
+			next = strchr(cur, '\r');
+			if (next == NULL)
+				break;
+			*next = '\0';
+			view(command, cur);
+		}
+		endexternal(command);
 		free(res);
 		return 0;
 	}
@@ -1382,17 +1386,23 @@ int imaprun(struct imapcommand *command) {
 		if (command->listonly)
 			continue;
 
+					/* check pattern */
+
+		sprintf(buf, "%d", command->begin + i);
+		if (! patternmatch(command, buf))
+			continue;
+
 					/* fetch envelope */
 
 		if (command->synchronous || ! command->delete ||
-		   command->idx == NULL || i == begin) {
+		    command->idx == NULL || i == begin) {
 			sprintf(buf, "%sFETCH %d ENVELOPE", uid, j);
 			SIMULATE_ERROR("fetch-envelope", buf);
 			res = sendrecv(&server, buf);
 			cardinality(res, &command->n);
 		}
 		if (! command->synchronous && command->delete &&
-		   command->idx != NULL) {
+		    command->idx != NULL) {
 			if (i < end) {
 				printstring("request next\n");
 				sprintf(buf, "%sFETCH %d ENVELOPE",
@@ -1412,10 +1422,11 @@ int imaprun(struct imapcommand *command) {
 			}
 		}
 		if (! command->verbose || command->external) {
+			printf("---------------\n");
 			cur = strchr(res, '\n');
 			if (cur && *cur != '\0')
 				*(cur + 1) = '\0';
-			runexternal(command, res);
+			view(command, res);
 		}
 		free(res);
 
@@ -1573,7 +1584,7 @@ int parsepattern(struct imapcommand *command, char *line) {
 	command->pattern = NULL;
 	ret = GET;
 	if (2 != sscanf(line, "%s %s", c, s))
-		strcpy(s, "-1");
+		stringtouid(command, "-1");
 	else if (s[0] == '*')
 		command->pattern = strdup(s + 1);
 	else if (stringtouid(command, s))
@@ -1610,8 +1621,7 @@ enum command parse(struct imapcommand *command, char *line) {
 		if (! strcmp(single, list[i])) {
 			ret = GET;
 			if (2 == sscanf(line, "%s %s\n", s, s))
-				if (stringtouid(command, s))
-					ret = VALUE;
+				ret = parsepattern(command, line);
 		}
 	for (i = 0; delete[i] != NULL; i++)
 		if (! strcmp(single, delete[i])) {
@@ -1686,19 +1696,11 @@ enum command parse(struct imapcommand *command, char *line) {
 		printhelp("structure");
 		printf("currently: %s\n", command->structure ? "yes" : "no");
 	}
-	else if (1 == sscanf(line, "show %s", s)) {
-		command->body = 1;
-		free(command->prefix);
-		command->prefix = NULL;
-		ret = GET;
-		if (stringtouid(command, s))
-			ret = VALUE;
-	}
 	else if (! strcmp(single, "show")) {
 		command->body = 1;
 		free(command->prefix);
 		command->prefix = NULL;
-		ret = GET;
+		ret = parsepattern(command, line);
 	}
 	else if (1 == sscanf(line, "save %s", s)) {
 		command->body = 1;
