@@ -1028,6 +1028,9 @@ int automate(struct imapcommand *command) {
 int stringtouid(struct imapcommand *command, char *s) {
 	int i;
 
+	if (s == NULL)
+		return -1;
+
 	i = stringindextoint(s, command->idx, command->lidx);
 	if (i == 0)
 		return -1;
@@ -1422,7 +1425,6 @@ int imaprun(struct imapcommand *command) {
 			}
 		}
 		if (! command->verbose || command->external) {
-			printf("---------------\n");
 			cur = strchr(res, '\n');
 			if (cur && *cur != '\0')
 				*(cur + 1) = '\0';
@@ -1573,7 +1575,7 @@ enum command {OPTION, GET, REOPEN, AUTO, READ, HELP, QUIT, SYNTAX, VALUE};
 /*
  * parse mail pattern
  */
-int parsepattern(struct imapcommand *command, char *line) {
+int parsepattern(struct imapcommand *command, char *line, char *def) {
 	int ret;
 	char *c, *s;
 
@@ -1584,7 +1586,7 @@ int parsepattern(struct imapcommand *command, char *line) {
 	command->pattern = NULL;
 	ret = GET;
 	if (2 != sscanf(line, "%s %s", c, s))
-		stringtouid(command, "-1");
+		stringtouid(command, def);
 	else if (s[0] == '*')
 		command->pattern = strdup(s + 1);
 	else if (stringtouid(command, s))
@@ -1621,7 +1623,7 @@ enum command parse(struct imapcommand *command, char *line) {
 		if (! strcmp(single, list[i])) {
 			ret = GET;
 			if (2 == sscanf(line, "%s %s\n", s, s))
-				ret = parsepattern(command, line);
+				ret = parsepattern(command, line, NULL);
 		}
 	for (i = 0; delete[i] != NULL; i++)
 		if (! strcmp(single, delete[i])) {
@@ -1700,24 +1702,21 @@ enum command parse(struct imapcommand *command, char *line) {
 		command->body = 1;
 		free(command->prefix);
 		command->prefix = NULL;
-		ret = parsepattern(command, line);
+		ret = parsepattern(command, line, NULL);
 	}
 	else if (1 == sscanf(line, "save %s", s)) {
 		command->body = 1;
-		free(command->prefix);
-		command->prefix = strdup(s);
-		ret = GET;
-		if (2 == sscanf(line, "save %s %s\n", s, s))
-			if (stringtouid(command, s))
-				ret = VALUE;
+		if (command->prefix == NULL || ! ! strcmp(s, ".")) {
+			free(command->prefix);
+			command->prefix = strdup(s);
+		}
+		ret = parsepattern(command, strchr(line, ' ') + 1, NULL);
 	}
 	else if (! strcmp(single, "save")) {
+		command->body = 1;
 		if (command->prefix == NULL)
-			ret = VALUE;
-		else {
-			command->body = 1;
-			ret = GET;
-		}
+			command->prefix = strdup("body");
+		ret = GET;
 	}
 	else if (! strcmp(single, "restore+"))
 		command->restore = 1;
@@ -1814,7 +1813,7 @@ enum command parse(struct imapcommand *command, char *line) {
 		printhelp("auto");
 	else if (! strcmp(single, "copy")) {
 		command->external = strdup(command->externals[0]);
-		ret = parsepattern(command, line);
+		ret = parsepattern(command, line, "-1");
 	}
 	else if (! strcmp(single, "nop")) {
 		command->command = strdup("NOOP");
@@ -1838,7 +1837,7 @@ enum command parse(struct imapcommand *command, char *line) {
 			ret = VALUE;
 		else {
 			command->external = strdup(command->externals[i]);
-			ret = parsepattern(command, line);
+			ret = parsepattern(command, line, "-1");
 		}
 	}
 
