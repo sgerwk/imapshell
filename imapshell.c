@@ -1622,8 +1622,7 @@ enum command parse(struct imapcommand *command, char *line) {
 	for (i = 0; list[i] != NULL; i++)
 		if (! strcmp(single, list[i])) {
 			ret = GET;
-			if (2 == sscanf(line, "%s %s\n", s, s))
-				ret = parsepattern(command, line, NULL);
+			ret = parsepattern(command, line, NULL);
 		}
 	for (i = 0; delete[i] != NULL; i++)
 		if (! strcmp(single, delete[i])) {
