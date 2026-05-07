@@ -1403,11 +1403,11 @@ int imaprun(struct imapcommand *command) {
 			cardinality(res, &command->n);
 		}
 		if (! command->synchronous && command->delete &&
-		    command->idx != NULL) {
-			if (i < end) {
+		    (command->idx != NULL || command->pattern != NULL)) {
+			if (i < end || command->pattern != NULL) {
 				printstring("request next\n");
 				sprintf(buf, "%sFETCH %d ENVELOPE",
-				        uid, command->idx[i + 1]);
+				        uid, j);
 				SIMULATE_ERROR("fetch-envelope", buf);
 				cnum++;
 				sendcommand(&server, buf);
@@ -1626,9 +1626,7 @@ enum command parse(struct imapcommand *command, char *line) {
 		if (! strcmp(single, delete[i])) {
 			command->delete = 1;
 			ret = GET;
-			if (2 == sscanf(line, "%s %s\n", s, s))
-				if (stringtouid(command, s))
-					ret = VALUE;
+			ret = parsepattern(command, line, "-1");
 		}
 
 	if (ret != OPTION) {
