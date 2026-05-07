@@ -1250,7 +1250,7 @@ int view(struct imapcommand *command, char *envelope) {
 /*
  * check if any of the ids matched the pattern
  */
-int endexternal(struct imapcommand *command) {
+int nomatch(struct imapcommand *command) {
 	if (command->external != NULL &&
 	    command->pattern != NULL &&
 	    ! ! strcmp(command->pattern, "found")) {
@@ -1371,7 +1371,7 @@ int imaprun(struct imapcommand *command) {
 			*next = '\0';
 			view(command, cur);
 		}
-		endexternal(command);
+		nomatch(command);
 		free(res);
 		return 0;
 	}
@@ -1530,7 +1530,7 @@ int imaprun(struct imapcommand *command) {
 
 	}
 
-	endexternal(command);
+	nomatch(command);
 
 	cnum -= pendingenvelope + pendingdelete - 1;
 	for (i = 0; i < pendingenvelope + pendingdelete; i++) {
@@ -1575,7 +1575,7 @@ enum command {OPTION, GET, REOPEN, AUTO, READ, HELP, QUIT, SYNTAX, VALUE};
 /*
  * parse mail pattern
  */
-int parsepattern(struct imapcommand *command, char *line, char *def) {
+int parsepattern(struct imapcommand *command, char *line, char *defaultid) {
 	int ret;
 	char *c, *s;
 
@@ -1586,7 +1586,7 @@ int parsepattern(struct imapcommand *command, char *line, char *def) {
 	command->pattern = NULL;
 	ret = GET;
 	if (2 != sscanf(line, "%s %s", c, s))
-		stringtouid(command, def);
+		stringtouid(command, defaultid);
 	else if (s[0] == '*')
 		command->pattern = strdup(s + 1);
 	else if (stringtouid(command, s))
