@@ -1390,13 +1390,11 @@ int imaprun(struct imapcommand *command) {
 			continue;
 
 					/* check pattern */
-
 		sprintf(buf, "%d", command->begin + i);
 		if (! patternmatch(command, buf))
 			continue;
 
 					/* fetch envelope */
-
 		if (command->synchronous || ! command->delete ||
 		    command->idx == NULL || i == begin) {
 			sprintf(buf, "%sFETCH %d ENVELOPE", uid, j);
