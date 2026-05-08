@@ -1151,6 +1151,8 @@ int pagerstart(struct imapcommand *command) {
 	    command->external)
 		return 0;
 
+	printstring("VVVVVVVVVV start paging VVVVVVVVVV\n");
+
 	res = pipe(command->pagerpipe);
 	if (res == -1) {
 		perror("pipe");
@@ -1215,6 +1217,8 @@ void pagerstop(struct imapcommand *command) {
 	dup2(command->pagersave, STDOUT_FILENO);
 	close(command->pagersave);
 	command->pagersave = -1;
+
+	printstring("^^^^^^^^^^ stop paging ^^^^^^^^^^\n");
 }
 
 /*
