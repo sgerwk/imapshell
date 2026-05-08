@@ -1396,18 +1396,18 @@ int imaprun(struct imapcommand *command) {
 
 					/* fetch envelope */
 		if (command->synchronous || ! command->delete ||
-		    command->idx == NULL || i == begin) {
+		    command->pattern || command->idx == NULL || i == begin) {
 			sprintf(buf, "%sFETCH %d ENVELOPE", uid, j);
 			SIMULATE_ERROR("fetch-envelope", buf);
 			res = sendrecv(&server, buf);
 			cardinality(res, &command->n);
 		}
 		if (! command->synchronous && command->delete &&
-		    (command->idx != NULL || command->pattern != NULL)) {
+		    command->idx != NULL && command->pattern == NULL) {
 			if (i < end || command->pattern != NULL) {
 				printstring("request next\n");
 				sprintf(buf, "%sFETCH %d ENVELOPE",
-				        uid, j);
+				        uid, command->idx[i + 1]);
 				SIMULATE_ERROR("fetch-envelope", buf);
 				cnum++;
 				sendcommand(&server, buf);
