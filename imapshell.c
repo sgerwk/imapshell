@@ -1596,6 +1596,13 @@ int parsepattern(struct imapcommand *command, char *line, char *defaultid) {
 }
 
 /*
+ * default id/pattern for operations
+ */
+#define FIRST "+1"
+#define LAST  "-1"
+#define ALL   NULL
+
+/*
  * parse command line
  */
 enum command parse(struct imapcommand *command, char *line) {
@@ -1620,13 +1627,13 @@ enum command parse(struct imapcommand *command, char *line) {
 	for (i = 0; list[i] != NULL; i++)
 		if (! strcmp(single, list[i])) {
 			ret = GET;
-			ret = parsepattern(command, line, NULL);
+			ret = parsepattern(command, line, ALL);
 		}
 	for (i = 0; delete[i] != NULL; i++)
 		if (! strcmp(single, delete[i])) {
 			command->delete = 1;
 			ret = GET;
-			ret = parsepattern(command, line, "-1");
+			ret = parsepattern(command, line, ALL);
 		}
 
 	if (ret != OPTION) {
@@ -1697,7 +1704,7 @@ enum command parse(struct imapcommand *command, char *line) {
 		command->body = 1;
 		free(command->prefix);
 		command->prefix = NULL;
-		ret = parsepattern(command, line, NULL);
+		ret = parsepattern(command, line, ALL);
 	}
 	else if (1 == sscanf(line, "save %s", s)) {
 		command->body = 1;
@@ -1705,7 +1712,7 @@ enum command parse(struct imapcommand *command, char *line) {
 			free(command->prefix);
 			command->prefix = strdup(s);
 		}
-		ret = parsepattern(command, strchr(line, ' ') + 1, NULL);
+		ret = parsepattern(command, strchr(line, ' ') + 1, ALL);
 	}
 	else if (! strcmp(single, "save")) {
 		command->body = 1;
@@ -1808,7 +1815,7 @@ enum command parse(struct imapcommand *command, char *line) {
 		printhelp("auto");
 	else if (! strcmp(single, "copy")) {
 		command->external = strdup(command->externals[0]);
-		ret = parsepattern(command, line, "-1");
+		ret = parsepattern(command, line, LAST);
 	}
 	else if (! strcmp(single, "nop")) {
 		command->command = strdup("NOOP");
@@ -1832,7 +1839,7 @@ enum command parse(struct imapcommand *command, char *line) {
 			ret = VALUE;
 		else {
 			command->external = strdup(command->externals[i]);
-			ret = parsepattern(command, line, "-1");
+			ret = parsepattern(command, line, LAST);
 		}
 	}
 
