@@ -1146,7 +1146,9 @@ int pagerstart(struct imapcommand *command) {
 
 	if (! command->pager)
 		return 0;
-	if ((command->body && command->prefix) || command->delete)
+	if ((command->body && command->prefix) ||
+	    command->delete ||
+	    command->external)
 		return 0;
 
 	res = pipe(command->pagerpipe);
@@ -1200,7 +1202,9 @@ void pagerstop(struct imapcommand *command) {
 
 	if (! command->pager)
 		return;
-	if ((command->body && command->prefix) || command->delete)
+	if ((command->body && command->prefix) ||
+	    command->delete ||
+	    command->external)
 		return;
 
 	fflush(stdout);
@@ -1258,10 +1262,8 @@ int view(struct imapcommand *command, char *envelope) {
 	sprintf(buf, command->external, idx, envelope);
 	if (command->verbose)
 		printf("command: %s\n", buf);
-	pagersuspend(command);
 	if (system(buf) != 0)
 		return -2;
-	pagerresume(command);
 	free(buf);
 
 	if (command->pattern) {
