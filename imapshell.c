@@ -1404,7 +1404,7 @@ int imaprun(struct imapcommand *command) {
 		}
 		if (! command->synchronous && command->delete &&
 		    command->idx != NULL && command->pattern == NULL) {
-			if (i < end || command->pattern != NULL) {
+			if (i < end) {
 				printstring("request next\n");
 				sprintf(buf, "%sFETCH %d ENVELOPE",
 				        uid, command->idx[i + 1]);
