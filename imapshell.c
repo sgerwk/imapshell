@@ -28,6 +28,31 @@
  * 	call imaprun() on list, show, save and delete
  */
 
+/*
+ * asynchronous delete
+ *
+ * some servers are slow at responding to mail deletions, causing pauses
+ * between the delete confirmation questions
+ *
+ * to reduce delays, deletions are asynchronous: after a delete is confirmed
+ * for a mail, its deletion command is sent to the server without waiting for
+ * its reply
+ *
+ * rather, the loop proceeds with the next mail; its deletion is asked for
+ * confirmation and only after that the reply for the previous mail is read and
+ * handled, provided that its deletion request is pending
+ *
+ * the exception is the last email, since the loop over mails has no next
+ * iteration; its deletion reply is read and handled immediately
+ *
+ * if deletion is on all mails or on a single mail identified by uid, the loop
+ * is respectively over that mail only or over all of them; in both cases, the
+ * last iteration of the loop is where the last reply is to be read and handled
+ * immediately; it is not with patterns, since the loop is over all mails but
+ * only one is deleted; therefore, deletion by pattern is performed
+ * synchronously
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
