@@ -1298,6 +1298,7 @@ int imaprun(struct imapcommand *command) {
 		sprintf(buf, "%sFETCH %d:%d ENVELOPE", uid, begin, end);
 	}
 	else {
+		printstring("search mail list\n");
 		commandtostring(buf, command);
 		uid = strstr(buf, "UID ") == buf ? "UID " : "";
 		SIMULATE_ERROR("search", buf);
@@ -1586,7 +1587,7 @@ int parsepattern(struct imapcommand *command, char *line, char *defaultid) {
 	if (2 != sscanf(line, "%s %s", c, s))
 		stringtouid(command, defaultid);
 	else if (s[0] == '*')
-		command->pattern = strdup(s + 1);
+		command->pattern = ! strcmp(s, "*") ? NULL : strdup(s + 1);
 	else if (stringtouid(command, s))
 		ret = VALUE;
 
