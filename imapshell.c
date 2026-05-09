@@ -385,6 +385,7 @@ struct server {
 	int fd;
 	FILE *pipe;
 	char *program;
+	int progress;
 };
 
 /*
@@ -402,6 +403,7 @@ int imapconnect(struct server *server, char *hostname) {
 	}
 	server->fd = -1;
 	server->pipe = NULL;
+	server->progress = 0;
 	return 0;
 }
 
@@ -685,7 +687,7 @@ char *sendrecv(struct server *server, char *comm) {
 void recvemail(struct server *server, FILE* dest) {
 	char buf[BUFLEN];
 	char *res;
-	int size, nr;
+	int size, left, nr;
 
 	res = fdgets(buf, BUFLEN, server, 0);
 	printstring(res);
@@ -698,12 +700,15 @@ void recvemail(struct server *server, FILE* dest) {
 
 	res = (char *) malloc(1024);
 
-	while (size > 0) {
-		nr = FD_read(server, res, size < 1024 ? size : 1024);
+	for (left = size; left > 0; left -= nr) {
+		nr = FD_read(server, res, left < 1024 ? left : 1024);
 		fwrite(res, 1, nr, dest);
-		size -= nr;
+		if (server->progress)
+			printf("loading: %d%%\r", (size - left) * 100 / size);
 	}
 	free(res);
+	if (server->progress)
+		printf("loading: %d%%\n", (size - left) * 100 / size);
 
 	fdgets(buf, 999, server, 0);
 	printstring(buf);
@@ -1516,7 +1521,9 @@ int imaprun(struct imapcommand *command) {
 					printf("cannot open file %s\n", fname);
 					continue;
 				}
+				server.progress = 1;
 				res = fetch(&server, buf, file);
+				server.progress = 0;
 				fclose(file);
 			}
 			cardinality(res, &command->n);
