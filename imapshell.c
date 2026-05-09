@@ -1521,7 +1521,7 @@ int imaprun(struct imapcommand *command) {
 			}
 			cardinality(res, &command->n);
 			free(res);
-			if (command->pager && ! ispaging)
+			if (! command->prefix && command->pager && ! ispaging)
 				break;
 		}
 
