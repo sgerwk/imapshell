@@ -1139,6 +1139,17 @@ void bounds(struct imapcommand *command) {
 }
 
 /*
+ * pager terminates: close stdout to interrupt the write to it, if any
+ */
+int ispaging = 0;
+void usr1(int sig) {
+	(void) sig;
+	if (ispaging && close(STDOUT_FILENO))
+		perror("close");
+	ispaging = 0;
+}
+
+/*
  * start paging
  */
 int pagerstart(struct imapcommand *command) {
@@ -1167,8 +1178,11 @@ int pagerstart(struct imapcommand *command) {
 			return -1;
 		}
 		res = system(command->pager);
+		kill(getppid(), SIGUSR1);
 		exit(res);
 	}
+
+	ispaging = 1;
 
 	command->pagersave = dup(STDOUT_FILENO);
 	dup2(command->pagerpipe[1], STDOUT_FILENO);
@@ -1182,6 +1196,7 @@ int pagerstart(struct imapcommand *command) {
 int pagersuspend(struct imapcommand *command) {
 	if (! command->pager)
 		return 0;
+	ispaging = 0;
 	dup2(command->pagersave, STDOUT_FILENO);
 	return 0;
 }
@@ -1193,6 +1208,7 @@ int pagerresume(struct imapcommand *command) {
 	if (! command->pager)
 		return 0;
 	dup2(command->pagerpipe[1], STDOUT_FILENO);
+	ispaging = 1;
 	return 0;
 }
 
@@ -1210,6 +1226,7 @@ void pagerstop(struct imapcommand *command) {
 		return;
 
 	fflush(stdout);
+	ispaging = 0;
 	close(command->pagerpipe[1]);
 	close(STDOUT_FILENO);
 	wait(&res);
@@ -1247,12 +1264,12 @@ int view(struct imapcommand *command, char *envelope) {
 
 	if (command->external == NULL) {
 		viewer = command->viewer;
-		if (viewer)
-			printstringtocommand(envelope);
-		else {
+		if (! viewer) {
 			printstringonscreen(envelope);
 			printf("\n");
 		}
+		else if (! command->pager || ispaging)
+			printstringtocommand(envelope);
 		return 0;
 	}
 
@@ -1504,6 +1521,8 @@ int imaprun(struct imapcommand *command) {
 			}
 			cardinality(res, &command->n);
 			free(res);
+			if (command->pager && ! ispaging)
+				break;
 		}
 
 					/* delete email */
@@ -2495,10 +2514,11 @@ int main(int argn, char *argv[]) {
 		logout(EXIT_SUCCESS);
 	}
 
-			/* signal handler: exit from loop */
+			/* signal handlers */
 
 	signal(SIGINT, interrupt);
 	signal(SIGTERM, interrupt);
+	signal(SIGUSR1, usr1);
 
 			/* select inbox; OPENAS = SELECT or EXAMINE */
 
