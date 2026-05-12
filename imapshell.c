@@ -95,6 +95,7 @@
 #define CHUNK 1 M
 #define NOPROGRESS -1
 #define FINISHED    0
+#define NOCHAR -1
 
 /*
  * debug print
@@ -849,7 +850,7 @@ char readchar(int wait) {
 		timeout.tv_usec = 0;
 		if (! select(1 + 1, &fs, NULL, NULL, &timeout)) {
 			tcsetattr(STDIN_FILENO, TCSANOW, &original);
-			return -1;
+			return NOCHAR;
 		}
 	}
 
