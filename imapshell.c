@@ -827,8 +827,10 @@ void logout(int ret) {
 /*
  * read a character from terminal
  */
-char readchar() {
+char readchar(int wait) {
 	struct termios original, charbychar;
+	fd_set fs;
+	struct timeval timeout;
 	char c;
 
 	tcgetattr(STDIN_FILENO, &original);
@@ -839,6 +841,17 @@ char readchar() {
 	charbychar.c_cc[VTIME] = 0;
 
 	tcsetattr(STDIN_FILENO, TCSANOW, &charbychar);
+
+	if (! wait) {
+		FD_ZERO(&fs);
+		FD_SET(STDIN_FILENO, &fs);
+		timeout.tv_sec = 0;
+		timeout.tv_usec = 0;
+		if (! select(1 + 1, &fs, NULL, NULL, &timeout)) {
+			tcsetattr(STDIN_FILENO, TCSANOW, &original);
+			return -1;
+		}
+	}
 
 	fread(&c, 1, 1, stdin);
 
@@ -1587,7 +1600,7 @@ int imaprun(struct imapcommand *command) {
 					/* delete email */
 		if (command->delete && command->idx != NULL) {
 			printf("delete email [yes/No/exit]? ");
-			c = readchar();
+			c = readchar(1);
 			printf("\n\n");
 			getpending = pendingdelete;
 			switch(c) {
