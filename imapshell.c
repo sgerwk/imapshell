@@ -88,6 +88,15 @@
 #define BUFLEN 4096
 
 /*
+ * progress in downloading
+ */
+#define K * 1024
+#define M * 1048576
+#define CHUNK 1 M
+#define NOPROGRESS -1
+#define FINISHED    0
+
+/*
  * debug print
  */
 int debug = 0;
@@ -218,9 +227,9 @@ char *simulate_error_where;
 void simulate_error_usage() {
 	printf("simulated errors:\n");
 	printf("\tfetch-envelope\n\tfetch-flags\n\tfetch-body-structure\n");
-	printf("\tfetch-body\n\tlogin\n\tlist-inboxes\n\tselect-inbox\n");
-	printf("\tsearch\n\tfetch-all-envelopes\n\trestore-flags\n\tdelete\n");
-	printf("\tnoop\n");
+	printf("\tfetch-size\tfetch-body\n\tlogin\n\tlist-inboxes\n");
+	printf("\tselect-inbox\tsearch\n\tfetch-all-envelopes\n");
+	printf("\trestore-flags\n\tdelete\n\tnoop\n");
 }
 
 /*
@@ -385,7 +394,14 @@ struct server {
 	int fd;
 	FILE *pipe;
 	char *program;
-	int progress;
+};
+
+/*
+ * progress indicator
+ */
+struct progress {
+	int size;
+	int left;
 };
 
 /*
@@ -403,7 +419,6 @@ int imapconnect(struct server *server, char *hostname) {
 	}
 	server->fd = -1;
 	server->pipe = NULL;
-	server->progress = 0;
 	return 0;
 }
 
@@ -684,10 +699,11 @@ char *sendrecv(struct server *server, char *comm) {
 /*
  * receive an email
  */
-void recvemail(struct server *server, FILE* dest) {
+void recvemail(struct server *server, FILE* dest, struct progress *progress) {
 	char buf[BUFLEN];
 	char *res;
 	int size, left, nr;
+	int perc, prev;
 
 	res = fdgets(buf, BUFLEN, server, 0);
 	printstring(res);
@@ -699,16 +715,29 @@ void recvemail(struct server *server, FILE* dest) {
 	}
 
 	res = (char *) malloc(1024);
+	if (progress->left != NOPROGRESS)
+		prev = (progress->size - progress->left) * 100 / progress->size;
 
 	for (left = size; left > 0; left -= nr) {
 		nr = FD_read(server, res, left < 1024 ? left : 1024);
 		fwrite(res, 1, nr, dest);
-		if (server->progress)
-			printf("loading: %d%%\r", (size - left) * 100 / size);
+
+		if (progress->left == NOPROGRESS)
+			continue;
+		progress->left -= nr;
+		perc = (progress->size - progress->left) * 100 / progress->size;
+		if (perc == prev)
+			continue;
+		printf("loading: %d%%\r", perc);
+		fflush(stdout);
+		prev = perc;
 	}
+
 	free(res);
-	if (server->progress)
-		printf("loading: %d%%\n", (size - left) * 100 / size);
+	if (progress->left == FINISHED)
+		printf("\n");
+	if (size == 0)
+		progress->left = FINISHED;
 
 	fdgets(buf, 999, server, 0);
 	printstring(buf);
@@ -722,13 +751,14 @@ void recvemail(struct server *server, FILE* dest) {
  * )
  * tag OK
 */
-char *fetch(struct server *server, char *comm, FILE *dest) {
+char *fetch(struct server *server, char *comm, FILE *dest,
+            struct progress *progress) {
 	char *res;
 
 	cnum++;
 
 	sendcommand(server, comm);
-	recvemail(server, dest);
+	recvemail(server, dest, progress);
 	res = recvanswer(server);
 	if (res == NULL) {
 		printf("Received non-OK answer, exiting\n");
@@ -1326,6 +1356,8 @@ int imaprun(struct imapcommand *command) {
 	int executeonly = 0;
 	char *seen;
 	int i, j;
+	int size, start;
+	struct progress progress;
 	FILE *file;
 	char c;
 
@@ -1507,11 +1539,25 @@ int imaprun(struct imapcommand *command) {
 			free(res);
 		}
 
+					/* get size */
+		if (command->body) {
+			size = -1;
+			sprintf(buf, "%sFETCH %d RFC822.SIZE", uid, j);
+			SIMULATE_ERROR("fetch-size", buf);
+			res = sendrecv(&server, buf);
+			cardinality(res, &command->n);
+			cur = strstr(res, "SIZE");
+			if (cur == NULL || 1 != sscanf(cur, "SIZE %d", &size))
+				printf("WARNING: cannot find size\n");
+			else
+				printf("size: %d\n", size);
+			free(res);
+		}
+
 					/* get body */
 		if (command->body) {
-			sprintf(buf, "%sFETCH %d BODY.PEEK[]", uid, j);
-			if (command->prefix == NULL)
-				res = fetch(&server, buf, stdout);
+			if (command->prefix == NULL) 
+				file = stdout;
 			else {
 				snprintf(fname, BUFLEN, "%s.%d",
 				                command->prefix, j);
@@ -1521,13 +1567,19 @@ int imaprun(struct imapcommand *command) {
 					printf("cannot open file %s\n", fname);
 					continue;
 				}
-				server.progress = 1;
-				res = fetch(&server, buf, file);
-				server.progress = 0;
-				fclose(file);
 			}
-			cardinality(res, &command->n);
-			free(res);
+			progress.size = size;
+			for (progress.left = size, start = 0;
+			     progress.left != 0;
+			     start += CHUNK) {
+				cur = "%sFETCH %d BODY.PEEK[]<%d.%d>";
+				sprintf(buf, cur, uid, j, start, CHUNK);
+				res = fetch(&server, buf, file, &progress);
+				cardinality(res, &command->n);
+				free(res);
+			}
+			if (command->prefix != NULL)
+				fclose(file);
 			if (! command->prefix && command->pager && ! ispaging)
 				break;
 		}
