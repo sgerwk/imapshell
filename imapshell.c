@@ -1363,7 +1363,7 @@ int nomatch(struct imapcommand *command) {
 int imaprun(struct imapcommand *command) {
 	char *uid;
 	char buf[BUFLEN], fname[BUFLEN] = "";
-	char *header;
+	char *header, *fields = "(ENVELOPE RFC822.SIZE)";
 	int begin, end;
 	char *res, *cur, *next;
 	int pendingenvelope = 0, pendingdelete = 0, getpending;
@@ -1376,13 +1376,12 @@ int imaprun(struct imapcommand *command) {
 	char c, l;
 
 			/* search */
-
 	if (command->uid) {
 		uid = "UID ";
 		begin = 0;
 		end = command->luid - 1;
 		cur = intarraytostring(command->uid, command->luid, ",");
-		sprintf(buf, "%sFETCH %s ENVELOPE", uid, cur);
+		sprintf(buf, "%sFETCH %s %s", uid, cur, fields);
 		free(cur);
 	}
 	else if (command->search == NULL &&
@@ -1394,7 +1393,7 @@ int imaprun(struct imapcommand *command) {
 		begin = command->begin;
 		end = command->end;
 		printf("emails from %d to %d\n", begin, end);
-		sprintf(buf, "%sFETCH %d:%d ENVELOPE", uid, begin, end);
+		sprintf(buf, "%sFETCH %d:%d %s", uid, begin, end, fields);
 	}
 	else {
 		printstring("search mail list\n");
@@ -1446,7 +1445,7 @@ int imaprun(struct imapcommand *command) {
 
 		cur = intarraytostring(command->idx, end + 1, ",");
 		// alternative: (ENVELOPE FLAGS)
-		snprintf(buf, BUFLEN, "%sFETCH %s ENVELOPE", uid, cur);
+		snprintf(buf, BUFLEN, "%sFETCH %s %s", uid, cur, fields);
 		free(cur);
 	}
 
