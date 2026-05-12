@@ -1373,7 +1373,7 @@ int imaprun(struct imapcommand *command) {
 	int size, start;
 	struct progress progress;
 	FILE *file;
-	char c;
+	char c, l;
 
 			/* search */
 
@@ -1583,6 +1583,7 @@ int imaprun(struct imapcommand *command) {
 				}
 			}
 			progress.size = size;
+			l = NOCHAR;
 			for (progress.left = size, start = 0;
 			     progress.left != 0;
 			     start += CHUNK) {
@@ -1591,9 +1592,21 @@ int imaprun(struct imapcommand *command) {
 				res = fetch(&server, buf, file, &progress);
 				cardinality(res, &command->n);
 				free(res);
+				while ((c = readchar(0)) != NOCHAR)
+					l = c;
+				if (strchr("xq\033", l)) {
+					l = 'x';
+					break;
+				}
+
 			}
-			if (command->prefix != NULL)
+			if (command->prefix != NULL) {
 				fclose(file);
+				if (l == 'x') {
+					unlink(fname);
+					breakloop = 1;
+				}
+			}
 			if (! command->prefix && command->pager && ! ispaging)
 				break;
 		}
