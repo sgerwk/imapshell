@@ -973,6 +973,7 @@ struct imapcommand {
 	int pagersave;
 	int *uid;		// only these uids
 	int luid;
+	char *section;
 				// others
 	char *search;
 	char *command;
@@ -1554,8 +1555,8 @@ int imaprun(struct imapcommand *command) {
 		}
 
 					/* get size */
-		if (command->body) {
-			size = -1;
+		size = -1;
+		if (command->body && ! command->section) {
 			sprintf(buf, "%sFETCH %d RFC822.SIZE", uid, j);
 			SIMULATE_ERROR("fetch-size", buf);
 			res = sendrecv(&server, buf);
@@ -1587,8 +1588,11 @@ int imaprun(struct imapcommand *command) {
 			for (progress.left = size, start = 0;
 			     progress.left != 0;
 			     start += CHUNK) {
-				cur = "%sFETCH %d BODY.PEEK[]<%d.%d>";
-				sprintf(buf, cur, uid, j, start, CHUNK);
+				cur = "%sFETCH %d BODY.PEEK[%s]<%d.%d>";
+				sprintf(buf, cur, uid, j,
+				        command->section ?
+						command->section : "",
+				        start, CHUNK);
 				res = fetch(&server, buf, file, &progress);
 				cardinality(res, &command->n);
 				free(res);
@@ -1695,6 +1699,8 @@ void resetcommand(struct imapcommand *command) {
 	free(command->uid);
 	command->uid = NULL;
 	command->luid = 0;
+	free(command->section);
+	command->section = NULL;
 	free(command->external);
 	command->external = NULL;
 	free(command->pattern);
@@ -1848,6 +1854,10 @@ enum command parse(struct imapcommand *command, char *line) {
 		free(command->prefix);
 		command->prefix = ! strcmp(s, ".") ? NULL : strdup(s);
 		ret = parsepattern(command, strchr(line, ' ') + 1, ALL);
+		if (strchr(line, '|')) {
+			free(command->section);
+			command->section = strdup(strchr(line, '|') + 1);
+		}
 	}
 	else if (! strcmp(single, "save")) {
 		command->body = 1;
@@ -2344,6 +2354,7 @@ int main(int argn, char *argv[]) {
 	command.range = NULL;
 	command.uid = NULL;
 	command.luid = 0;
+	command.section = NULL;
 	command.search = malloc(200);
 	command.command = NULL;
 	command.viewer = NULL;
