@@ -1544,7 +1544,8 @@ int imaprun(struct imapcommand *command) {
 		}
 
 					/* get body structure */
-		if (command->structure) {
+		if (command->structure ||
+		    (command->section && command->section[0] == '\0')) {
 			sprintf(buf, "%sFETCH %d BODYSTRUCTURE", uid, j);
 			SIMULATE_ERROR("fetch-body", buf);
 			res = sendrecv(&server, buf);
@@ -1570,7 +1571,8 @@ int imaprun(struct imapcommand *command) {
 		}
 
 					/* get body */
-		if (command->body) {
+		if (command->body &&
+		    (! command->section || command->section[0] != '\0')) {
 			if (command->prefix == NULL) 
 				file = stdout;
 			else {
