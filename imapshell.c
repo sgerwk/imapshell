@@ -1573,9 +1573,9 @@ int imaprun(struct imapcommand *command) {
 					continue;
 				}
 			}
-			progress.size = command->section ? -1 : size;
+			progress.size = command->section ? NOPROGRESS : size;
 			l = NOCHAR;
-			for (progress.left = size, start = 0;
+			for (progress.left = progress.size, start = 0;
 			     progress.left != 0;
 			     start += CHUNK) {
 				cur = "%sFETCH %d BODY.PEEK[%s]<%d.%d>";
