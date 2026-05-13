@@ -17,6 +17,7 @@ MAIL="$1"
 
 CONFIG=$HOME/.config/imapshell/$MAIL
 TMPDIR=/run/user/$UID
+[ -d "$TMPDIR" ] || TMPDIR=/tmp
 
 mkdir -p $CONFIG
 
