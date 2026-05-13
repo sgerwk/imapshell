@@ -113,11 +113,11 @@ mails matching the current selection criteria;
 arguments are like for the \fIlist\fP command
 
 .TP
-.BI save " [base [uid|*pattern]]
+.BI save " [base [uid[[|]section]|*pattern]]
 save the mails matching the current selection criteria,
 each to \fIbase.uid\fP;
 the base is the last if the argument is \fI.\fP;
-the default is \fI"body"\fP;
+the default is \fI"body"\fP or the previous base if any;
 the other arguments are like for the \fIlist\fP command
 
 .TP
