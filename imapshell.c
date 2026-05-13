@@ -1498,7 +1498,7 @@ int imaprun(struct imapcommand *command) {
 					/* fetch envelope */
 		if (command->synchronous || ! command->delete ||
 		    command->pattern || command->idx == NULL || i == begin) {
-			sprintf(buf, "%sFETCH %d ENVELOPE", uid, j);
+			sprintf(buf, "%sFETCH %d %s", uid, j, fields);
 			SIMULATE_ERROR("fetch-envelope", buf);
 			res = sendrecv(&server, buf);
 			cardinality(res, &command->n);
@@ -1507,8 +1507,8 @@ int imaprun(struct imapcommand *command) {
 		    command->idx != NULL && command->pattern == NULL) {
 			if (i < end) {
 				printstring("request next\n");
-				sprintf(buf, "%sFETCH %d ENVELOPE",
-				        uid, command->idx[i + 1]);
+				sprintf(buf, "%sFETCH %d %s",
+				        uid, command->idx[i + 1], fields);
 				SIMULATE_ERROR("fetch-envelope", buf);
 				cnum++;
 				sendcommand(&server, buf);
@@ -1528,6 +1528,9 @@ int imaprun(struct imapcommand *command) {
 			if (cur && *cur != '\0')
 				*(cur + 1) = '\0';
 			view(command, res);
+			cur = strstr(res, "SIZE");
+			if (cur == NULL || 1 != sscanf(cur, "SIZE %d", &size))
+				printf("WARNING: cannot find size\n");
 		}
 		free(res);
 
@@ -1555,21 +1558,6 @@ int imaprun(struct imapcommand *command) {
 			free(res);
 		}
 
-					/* get size */
-		size = -1;
-		if (command->body && ! command->section) {
-			sprintf(buf, "%sFETCH %d RFC822.SIZE", uid, j);
-			SIMULATE_ERROR("fetch-size", buf);
-			res = sendrecv(&server, buf);
-			cardinality(res, &command->n);
-			cur = strstr(res, "SIZE");
-			if (cur == NULL || 1 != sscanf(cur, "SIZE %d", &size))
-				printf("WARNING: cannot find size\n");
-			else
-				printf("size: %d\n", size);
-			free(res);
-		}
-
 					/* get body */
 		if (command->body &&
 		    (! command->section || command->section[0] != '\0')) {
@@ -1585,7 +1573,7 @@ int imaprun(struct imapcommand *command) {
 					continue;
 				}
 			}
-			progress.size = size;
+			progress.size = command->section ? -1 : size;
 			l = NOCHAR;
 			for (progress.left = size, start = 0;
 			     progress.left != 0;
