@@ -47,7 +47,7 @@ synchronous+
 	proceeding with the next; this option is for waiting instead
 viewer program
 	envelopes are shown by the given external program;
-	. stands for the imapenvelope script
+	. stands for the imapviewer script
 pager program
 	page mail lists through the given external program;
 	. stands for more 

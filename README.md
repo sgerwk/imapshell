@@ -65,15 +65,15 @@ found 4 mails within -200-0 (1-4): 4 94 112 351
     4-Jan-2025
 current parameters:
 UID SEARCH 1:4
-execute- listonly- structure- body- restore+ synchronous- viewer=imapenvelope verbose- ro
+execute- listonly- structure- body- restore+ synchronous- viewer=imapviewer verbose- ro
 IMAP> subject this
 current parameters:
 UID SEARCH 1:4 SUBJECT "this"
-execute- listonly- structure- body- restore+ synchronous- viewer=imapenvelope verbose- ro
+execute- listonly- structure- body- restore+ synchronous- viewer=imapviewer verbose- ro
 IMAP> from sam
 current parameters:
 UID SEARCH 1:4 FROM sam SUBJECT "this"
-execute- listonly- structure- body- restore+ synchronous- viewer=imapenvelope verbose- ro
+execute- listonly- structure- body- restore+ synchronous- viewer=imapviewer verbose- ro
 IMAP> save textfile
 found 1 mail within -200-0 (1-4): 4 
 ===== UID 4 =====
@@ -86,7 +86,7 @@ content -> textfile.4
 *** uncompress with munpack (unpack package)
 current parameters:
 UID SEARCH 1:4 FROM sam SUBJECT "this"
-execute- listonly- structure- bodytextfile restore+ synchronous- viewer=imapenvelope verbose- ro
+execute- listonly- structure- bodytextfile restore+ synchronous- viewer=imapviewer verbose- ro
 IMAP> quit 
 logout
 ```

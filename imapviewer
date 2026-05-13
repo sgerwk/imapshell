@@ -23,10 +23,25 @@ RM=$(tput sgr0 | tr -d '\017')
 #	5. html entities -> {}"		restore chars
 #
 cut -d' ' -f2- | \
-sed -e 's,{,\&lbrace;,g' -e 's,},\&rbrace;,g' -e 's,\\",\&rdquo;,g' | \
-sed 's,\([^"]*\)"\([^"]*\)",\1{\2},g' | \
-sed "s,^$N$S$P$P$P$P$P.*,\1: $IT\4$RM\n    $BL\5$RM <\6@\7>\n    \3$IL   \2," | \
-sed -e 's,&[rl]dquo;,",g' -e 's,&lbrace;,{,g' -e 's,&rbrace;,},g' | \
+sed '
+/ENVELOPE/ {
+	s,{,\&lbrace;,g
+	s,},\&rbrace;,g
+	s,\\",\&rdquo;,g
+	s,\([^"]*\)"\([^"]*\)",\1{\2},g
+	'"s,^$N$S$P$P$P$P$P.*,\1: $IT\4$RM\n    $BL\5$RM <\6@\7>\n    \3$IL   \2,"'
+	s,&[rl]dquo;,",g
+	s,&lbrace;,{,g
+	s,&rbrace;,},g
+}
+/FLAGS/ {
+	s,^.* FLAGS ,flags: ,
+	s,)\r$,,
+}
+/BODYSTRUCTURE/ {
+	s,^.*BODYSTRUCTURE ,structure: ,
+	s,)\r$,,
+} ' | \
 #
 # recode, utf8
 #

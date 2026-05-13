@@ -197,7 +197,7 @@ it is ignored for every operation other than delete
 .TP
 .BI viewer " program
 show envelopes by the given program;
-\fI.\fP stands for the \fIimapenvelope\fP script
+\fI.\fP stands for the \fIimapviewer\fP script
 
 .TP
 .BI pager " program
@@ -307,7 +307,7 @@ do not restore flags of emails, such as \fI\\Seen\fP
 .TP
 .BI -v " program
 envelopes are shown by the given program;
-\fI.\fP stands for the \fIimapenvelope\fP script
+\fI.\fP stands for the \fIimapviewer\fP script
 
 .TP
 .BI -M " pager
@@ -506,7 +506,7 @@ commands
 .P
 Envelopes are shown exactly as returned from the IMAP server, as nested lists
 of strings. The \fIviewer\fP command and the \fI-v\fP option redirect them to
-an external pretty-printing program, such as the \fBimapenvelope\fP script. The
+an external pretty-printing program, such as the \fBimapviewer\fP script. The
 mail listings are optionally piped through the external program given by the
 \fIpager\fP command and the \fI-M\fP option.
 

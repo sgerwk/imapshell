@@ -29,7 +29,7 @@ imapshell: LDFLAGS+=-lcrypto -lssl
 
 install: all
 	cp imapshell $$HOME/bin/
-	cp imapenvelope $$HOME/bin
+	cp imapviewer $$HOME/bin
 	cp imapshell.1 $$HOME/man/man1/
 
 clean:

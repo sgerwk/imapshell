@@ -72,7 +72,7 @@
 /*
  * default file names
  */
-#define DEFAULTVIEWER   "imapenvelope"
+#define DEFAULTVIEWER   "imapviewer"
 #define DEFAULTPAGER    "more"
 #define DEFAULTSIMULATE "imapsimulate"
 
@@ -1542,7 +1542,7 @@ int imaprun(struct imapcommand *command) {
 			cardinality(res, &command->n);
 			seen = strstr(res, "\\Seen");
 			if (! command->verbose)
-				fputs(res, stdout);
+				view(command, res);
 			free(res);
 		}
 
@@ -1554,7 +1554,7 @@ int imaprun(struct imapcommand *command) {
 			res = sendrecv(&server, buf);
 			cardinality(res, &command->n);
 			if (! command->verbose)
-				fputs(res, stdout);
+				view(command, res);
 			free(res);
 		}
 
@@ -2117,7 +2117,7 @@ int loop(struct imapcommand *command) {
 		sprintf(buf, "command %s", command->command);
 		add_history(buf);
 	}
-	add_history("viewer imapenvelope");
+	add_history("viewer imapviewer");
 	add_history("search");
 	add_history("exit");
 
