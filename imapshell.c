@@ -1376,6 +1376,7 @@ int imaprun(struct imapcommand *command) {
 	char c, l;
 
 			/* search */
+
 	if (command->uid) {
 		uid = "UID ";
 		begin = 0;
