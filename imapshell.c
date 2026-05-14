@@ -1302,7 +1302,7 @@ int patternmatch(struct imapcommand *command, char *id) {
  */
 int view(struct imapcommand *command, char *envelope) {
 	char idx[BUFLEN];
-	char *buf;
+	char *buf, *eol;
 
 	if (sscanf(envelope, "* %s ", idx) < 1) {
 		printf("error scanning envelope: %.50s...\n", envelope);
@@ -1311,6 +1311,10 @@ int view(struct imapcommand *command, char *envelope) {
 
 	if (! patternmatch(command, idx))
 		return -1;
+
+	eol = strchr(envelope, '\n');
+	if (eol)
+		*eol = '\0';
 
 	if (command->external == NULL) {
 		viewer = command->viewer;
@@ -1523,12 +1527,8 @@ int imaprun(struct imapcommand *command) {
 				pendingenvelope--;
 			}
 		}
-		if (! command->verbose || command->external) {
-			cur = strchr(res, '\n');
-			if (cur && *cur != '\0')
-				*(cur + 1) = '\0';
+		if (! command->verbose || command->external)
 			view(command, res);
-		}
 
 					/* extract size and flags */
 		cur = strstr(res, "SIZE");
