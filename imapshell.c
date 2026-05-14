@@ -1364,12 +1364,12 @@ int nomatch(struct imapcommand *command) {
 int imaprun(struct imapcommand *command) {
 	char *uid;
 	char buf[BUFLEN], fname[BUFLEN] = "";
-	char *header, *fields = "(ENVELOPE RFC822.SIZE)";
+	char *header, *fields = "(ENVELOPE FLAGS RFC822.SIZE)";
 	int begin, end;
 	char *res, *cur, *next;
 	int pendingenvelope = 0, pendingdelete = 0, getpending;
 	int executeonly = 0;
-	char *seen;
+	int seen;
 	int i, j;
 	int size, start;
 	struct progress progress;
@@ -1529,23 +1529,20 @@ int imaprun(struct imapcommand *command) {
 				*(cur + 1) = '\0';
 			view(command, res);
 		}
+
+					/* extract size and flags */
 		cur = strstr(res, "SIZE");
 		if (cur == NULL || 1 != sscanf(cur, "SIZE %d", &size)) {
 			printf("WARNING: cannot find size\n");
 			size = NOPROGRESS;
 		}
+		cur = strstr(res, "FLAGS");
+		next = strstr(cur, "\\Seen");
+		seen = next != NULL && next < strchr(cur, ')');
 		free(res);
-
-					/* get flags */
-		if (command->structure || command->body) {
-			sprintf(buf, "%sFETCH %d FLAGS", uid, j);
-			SIMULATE_ERROR("fetch-flags", buf);
-			res = sendrecv(&server, buf);
-			cardinality(res, &command->n);
-			seen = strstr(res, "\\Seen");
-			if (! command->verbose)
-				view(command, res);
-			free(res);
+		if (command->verbose) {
+			printf("%s, ", seen ? "seen" : "unseen");
+			printf("size: %d\n", size);
 		}
 
 					/* get body structure */
