@@ -1528,10 +1528,10 @@ int imaprun(struct imapcommand *command) {
 			if (cur && *cur != '\0')
 				*(cur + 1) = '\0';
 			view(command, res);
-			cur = strstr(res, "SIZE");
-			if (cur == NULL || 1 != sscanf(cur, "SIZE %d", &size))
-				printf("WARNING: cannot find size\n");
 		}
+		cur = strstr(res, "SIZE");
+		if (cur == NULL || 1 != sscanf(cur, "SIZE %d", &size))
+			printf("WARNING: cannot find size\n");
 		free(res);
 
 					/* get flags */
