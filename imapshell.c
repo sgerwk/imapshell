@@ -1670,7 +1670,7 @@ int imaprun(struct imapcommand *command) {
 	}
 	cnum--;
 
-	if (command->prefix && fname[0] != '\0') {
+	if (command->prefix && ! command->section && fname[0] != '\0') {
 		printf("*** emails saved\n");
 		printf("*** uncompress with munpack (unpack package)\n");
 	}
