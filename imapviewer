@@ -28,6 +28,11 @@ RM=$(tput sgr0 | tr -d '\017')
 cut -d' ' -f2- | \
 sed '
 
+# move uid at the end
+/ENVELOPE/ {
+	s,^\(.*\)(UID \([0-9]*\)\(.*\)$,\1\3\nJOINUID:\2,
+}
+
 # move size at the end
 /RFC822.SIZE/ {
 	s,^\(.*\) RFC822.SIZE \([0-9]*\)\(.*\),\1\3\nJOIN'"$BL\2$RM"',
