@@ -1563,8 +1563,13 @@ int imaprun(struct imapcommand *command) {
 			if (command->prefix == NULL) 
 				file = stdout;
 			else {
-				snprintf(fname, BUFLEN, "%s.%d",
-				                command->prefix, j);
+				if (command->section == NULL)
+					snprintf(fname, BUFLEN, "%s.%d",
+				                        command->prefix, j);
+				else
+					snprintf(fname, BUFLEN, "%s.%d.%s",
+				                        command->prefix, j,
+							command->section);
 				printf("content -> %s\n", fname);
 				file = fopen(fname, "w");
 				if (file == NULL) {
