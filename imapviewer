@@ -13,8 +13,11 @@ IT=$(tput smul)
 BL=$(tput bold)
 RM=$(tput sgr0 | tr -d '\017')
 
+cut -d' ' -f2- | \
+
 #
-# parse fields
+# format uid, envelope, size and flags
+#
 #	A. move size at the end
 #	B. move flags at the end
 #	C. format envelope:
@@ -25,8 +28,11 @@ RM=$(tput sgr0 | tr -d '\017')
 #		5. html entities -> {}"		restore chars
 #	D. join formatted envelope with size and flags
 #
-cut -d' ' -f2- | \
+
 sed '
+
+# testing
+# p
 
 # move uid at the end
 /ENVELOPE/ {
@@ -58,13 +64,101 @@ sed '
 # join formatted envelope with size and flags
 s,\nJOIN,   ,g
 
-# format bodystructure
+# prepare bodystructure for formatting in the next step
 /BODYSTRUCTURE/ {
-	s,^.*BODYSTRUCTURE ,structure: ,
-	s,)\r$,,
+	s,^[^()]*([^()]* \([0-9]*\) BODYSTRUCTURE ,BODYSTRUCTURE \1 ,
 }
 
 ' | \
+
+# format body structure
+#
+# structure = tree of combinations, leaves are parts
+# part = individual element, like ("TEXT" "PLAIN" ...)
+# combination = list of parts and kind, like ((...) (...) "ALTERNATIVE" ...)
+#
+# nest = level of nesting within a part, like ("TEXT" "PLAIN"...)
+#	 <=0	in a combination, like ((...) (...)... "ALTERNATIVE" ...)
+#        -1	in a combination, after the parts (...) (...)...
+#
+# part: start ""
+#       "(" => append ".1" if still scanning the parts of a combination
+#       ")" => increase last numher by 1
+
+awk -v ORS="" '
+
+function increase(part) {
+	prefix = part
+	sub("[^.]*$", "", prefix)
+	last = part
+	sub(".*[.]", "", last)
+	ret = prefix (last + 1)
+	return ret
+}
+
+/^BODYSTRUCTURE / {
+	part = ""
+	len = split($0, seq, "")
+	nest = 0
+	uid = 0
+	for (i = length("BODYSTRUCTURE ") + 1; i <= len; i++) {
+		c = seq[i]
+		n = seq[i + 1]
+
+						# print uid
+
+		if (uid == 0)
+			if (c ~ /[0-9]/)
+				print(c)
+			else {
+				print(":\n")
+				uid = 1
+			}
+
+						# inside single part
+		if (nest >= 1) {
+			if (c == "(")
+				nest++
+			if (c == ")") {
+				nest--
+				if (nest == 0)
+					part = increase(part)
+			}
+			print(c)
+			if (nest == 0)
+				print ("\n");
+		}
+						# start of single part
+		else if (nest == 0 && c == "(" && n == "\"") {
+			print(part == "" ? "1 " : part " ")
+			nest++
+		}
+						# combination
+		else {
+			if (c == "\"")
+				nest = -1;
+			if (c == ")") {
+				nest = 0;
+				sub("[.][0-9]*$", "", part)
+				part = increase(part)
+			}
+			if (c == "(") {
+				if (part == "")
+					part = "1"
+				else
+					part = part ".1"
+				val = 1
+			}
+		}
+	}
+	next
+}
+
+{
+	print
+	print("\n")
+}
+'
 #
 # recode, utf8
 #
