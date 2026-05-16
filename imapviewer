@@ -73,17 +73,19 @@ s,\nJOIN,   ,g
 
 # format body structure
 #
-# structure = tree of combinations, leaves are parts
-# part = individual element, like ("TEXT" "PLAIN" ...)
-# combination = list of parts and kind, like ((...) (...) "ALTERNATIVE" ...)
+# structure	tree of combinations, leaves are parts
+# part		individual element, like ("TEXT" "PLAIN" ...)
+# combination	list of parts and kind, like ((...) (...) "ALTERNATIVE" ...)
 #
-# nest = level of nesting within a part, like ("TEXT" "PLAIN"...)
-#	 <=0	in a combination, like ((...) (...)... "ALTERNATIVE" ...)
-#        -1	in a combination, after the parts (...) (...)...
+# nest	>0	level of nesting within a part, like ("TEXT" "PLAIN"...)
+#	<=0	in a combination, like ((...) (...)... "ALTERNATIVE" ...)
+#	-1	in a combination, after the parts (...) (...)...
+#	-2	in a combination, after the kind, like "ALTERNATIVE"
 #
-# part: start ""
-#       "(" => append ".1" if still scanning the parts of a combination
-#       ")" => increase last numher by 1
+# part	initially empty
+#	"(" => append ".1" if not followed by "
+#	")" => remove last part if after the parts of a combination
+#	")" => always increase last numher by 1
 
 awk -v ORS="" '
 
@@ -106,7 +108,6 @@ function increase(part) {
 		n = seq[i + 1]
 
 						# print uid
-
 		if (uid == 0)
 			if (c ~ /[0-9]/)
 				print(c)
@@ -133,10 +134,18 @@ function increase(part) {
 			print(part == "" ? "1 " : part " ")
 			nest++
 		}
-						# combination
+						# in a combination
 		else {
-			if (c == "\"")
-				nest = -1;
+			if (c == "\"" && nest == -1) {
+				nest = -2
+				print("\n")
+			}
+			if (nest == -1)
+				print(c)
+			if (c == "\"" && nest == 0) {
+				nest = -1
+				print(substr("         ", 0, length(part) + 1))
+			}
 			if (c == ")") {
 				nest = 0;
 				sub("[.][0-9]*$", "", part)
@@ -147,7 +156,6 @@ function increase(part) {
 					part = "1"
 				else
 					part = part ".1"
-				val = 1
 			}
 		}
 	}
