@@ -1847,11 +1847,11 @@ enum command parse(struct imapcommand *command, char *line) {
 		command->body = 1;
 		free(command->prefix);
 		command->prefix = ! strcmp(s, ".") ? NULL : strdup(s);
-		ret = parsepattern(command, strchr(line, ' ') + 1, ALL);
 		if (strchr(line, '|')) {
-			free(command->section);
 			command->section = strdup(strchr(line, '|') + 1);
+			*strchr(line, '|') = '\0';
 		}
+		ret = parsepattern(command, strchr(line, ' ') + 1, ALL);
 	}
 	else if (! strcmp(single, "save")) {
 		command->body = 1;
