@@ -107,20 +107,20 @@ and
 \fIdir\fP
 
 .TP
-.BI show " [uid|*pattern]
+.BI show " [uid|*pattern[|[section]]]
 show the content of the 
 mails matching the current selection criteria;
-arguments are like for the \fIlist\fP command
+if \fI|section\fP is given, only that section is shown;
+if \fIsection\fP is empty, the MIME structure of the message is shown;
+the other arguments are like for the \fIlist\fP command
 
 .TP
 .BI save " [base [uid|*pattern[|[section]]]
 save the mails matching the current selection criteria,
 each to \fIbase.uid\fP;
-if \fI|section\fP is given, only that section is saved;
-if \fIsection\fP is empty, the MIME structure of the message is shown;
 the base is the last if the argument is \fI.\fP;
 the default is \fI"body"\fP or the previous base if any;
-the other arguments are like for the \fIlist\fP command
+the other arguments are like for the \fIshow\fP command
 
 .TP
 .BI delete " [uid|*pattern]

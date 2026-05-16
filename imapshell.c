@@ -1841,6 +1841,10 @@ enum command parse(struct imapcommand *command, char *line) {
 		command->body = 1;
 		free(command->prefix);
 		command->prefix = NULL;
+		if (strchr(line, '|')) {
+			command->section = strdup(strchr(line, '|') + 1);
+			*strchr(line, '|') = '\0';
+		}
 		ret = parsepattern(command, line, ALL);
 	}
 	else if (1 == sscanf(line, "save %s", s)) {
